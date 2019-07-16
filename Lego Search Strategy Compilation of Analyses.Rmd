@@ -1,0 +1,501 @@
+---
+title: "Lego Search Strategy Compilation of Analyses"
+author: Mona Zhu
+date: Updated July 10, 2019
+output: 
+  html_document:
+    fig_width: 8
+    fig_height: 5
+    toc: true
+    toc_float: true
+    theme: cerulean
+    highlight: tango
+    code_folding: hide
+---
+
+<style>
+pre code, pre, code {
+  overflow-y: auto !important;
+  max-height: 20em;
+}
+</style>
+
+```{r, warning = F, message = F}
+library(car)
+library(ggplot2)
+library(plyr)
+library(reshape2)
+library(wesanderson)
+library(corrplot)
+library(BayesFactor)
+library(sjPlot)
+```
+
+```{r}
+# setwd("C:/Users/monaj/Dropbox/CANB Lab/Lego & Search/Online Lego Study")
+df<-read.csv("Lego_Combined In-Lab&Turk&SONA_10Jul2019.csv")
+
+df$StudyType<-factor(ifelse(df$Study=="Sona E1"|df$Study=="Sona E2", "Sona", 
+                     ifelse(df$Study=="Mturk E1"|df$Study=="Mturk E2"|df$Study=="Mturk E3", "Mturk", "In Lab")))
+
+# Pre-Task Choice
+df$Choice<-factor(recode(as.character(df$Choice), "''=NA; 'Categorize then search'='Organize First'; 
+                  'Search without categorizing'='Search Only'"))
+df$Choice<-factor(df$Choice, levels(df$Choice)[c(2,1)])
+df$Choice.Num<-ifelse(df$Choice=="Organize First", 1, 0)
+
+# Post-Task Choice (in-lab only)
+df$Future.Choice<-factor(recode(as.character(df$Future.Choice), "''=NA; 'Categorize then search'='Organize First'; 
+                         'Search without categorizing'='Search Only'"))
+df$Future.Choice<-factor(df$Future.Choice, levels(df$Future.Choice)[c(2,1)])
+df$FutureChoice.Num<-ifelse(df$Future.Choice=="Organize First", 1, 0)
+
+# Assigned Condition (in-lab only)
+df$Condition<-factor(recode(as.character(df$Condition), "''=NA; 'Categorize then search'='Organize First';
+                     'Search without categorizing'='Search Only'"))
+df$Condition<-factor(df$Condition, levels(df$Condition)[c(2,1)])
+
+# Recoding other variables
+df$PreTimeDiff<-df$Time_SearchTotal-df$Time_OrgTotal
+df$PostTimeDiff<-df$PostTime_SearchTotal-df$PostTime_OrgTotal
+df$EffDiff<-df$Search.Eff-df$Org.Eff
+df$FunDiff<-df$Search.Fun-df$Org.Fun
+df$Switch.Num<-ifelse(df$Switch=="Same", 0, 1)
+
+
+lab<-subset(df, StudyType=="In Lab")
+lab.ex<-subset(lab, Exclusion!="Exclude")
+
+# time<-df[complete.cases(df$Time_Org.min), ] # data set where time estimation was measured
+# eff<-df[complete.cases(df$Org.Eff), ] # dataset
+# fun<-df[complete.cases(df$Org.Fun), ]
+# post<-df[!is.na(df$Future.Choice),]
+```
+
+
+**0 = Search without categorizing** 
+
+**1 = Categorize then search**
+
+**NOTE:** Difference scores calculated as the *Search* condition minius *Organization* condition. Positive scores mean that organization is perceived to take less time than search. Proportion scores are calculated as *(Search-Organization)/Organization*
+
+## Choice Pre/Post-Task
+
+```{r}
+pre.choice<-melt(lab[-c(28)], id=c(1:26, 28:32)) # create a long data frame of just pre-task choice
+post.choice<-melt(lab.ex[-c(27)], id=c(1:26, 28:32)) # create a long data frame of just post-task choice
+lab.choice<-rbind(pre.choice, post.choice) # binding the two dataframes together
+names(lab.choice)[c(32,33)]<-c("PrePostChoice", "Choice.Num")
+lab.choice$PrePostChoice<-factor(recode(lab.choice$PrePostChoice, "'Choice.Num'='Pre-Task Choice';
+                                 'FutureChoice.Num'='Post-Task Choice'"))
+lab.choice$PrePostChoice<-factor(lab.choice$PrePostChoice, levels(lab.choice$PrePostChoice)[c(2,1)])
+```
+
+```{r}
+graph2<-ddply(lab.choice, c("Study", "PrePostChoice"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=Study, y=dep.avg, colour=PrePostChoice))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
+  scale_x_discrete("Experiment")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1)) 
+
+```
+
+## Does estimated task time predict chosen strategy?
+
+```{r}
+# E1
+e1.choice.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=lab[lab$Study=="In Lab E1",])
+coef.e1.pre<-cbind(
+  data.frame(Study="E1", 
+             PrePostChoice="Pre-Task Choice",
+             Variable=rownames(summary(e1.choice.pre)$coefficients)),
+             Count=nrow(lab[lab$Study=="In Lab E1",]),
+  as.data.frame(summary(e1.choice.pre)$ coefficients))
+
+e1.choice.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=lab.ex[lab.ex$Study=="In Lab E1",])
+coef.e1.post<-cbind(
+  data.frame(Study="E1", 
+             PrePostChoice="Post-Task Choice",
+             Variable=rownames(summary(e1.choice.post)$coefficients)),
+             Count=nrow(lab.ex[lab.ex$Study=="In Lab E1",]),
+  as.data.frame(summary(e1.choice.post)$ coefficients))
+
+# E2
+e2.choice.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=lab[lab$Study=="In Lab E2",])
+coef.e2.pre<-cbind(
+  data.frame(Study="E2", 
+             PrePostChoice="Pre-Task Choice",
+             Variable=rownames(summary(e2.choice.pre)$coefficients)),
+             Count=nrow(lab[lab$Study=="In Lab E2",]),
+  as.data.frame(summary(e2.choice.pre)$ coefficients))
+
+e2.choice.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=lab.ex[lab.ex$Study=="In Lab E2",])
+coef.e2.post<-cbind(
+  data.frame(Study="E2", 
+             PrePostChoice="Post-Task Choice",
+             Variable=rownames(summary(e2.choice.post)$coefficients)),
+             Count=nrow(lab.ex[lab.ex$Study=="In Lab E2",]),
+  as.data.frame(summary(e2.choice.post)$ coefficients))
+
+# putting together data frame
+models<-rbind(coef.e1.pre, coef.e1.post, coef.e2.pre, coef.e2.post)
+names(models)[6:8]=c("SE", "zValue","pValue")
+print(models)
+```
+
+
+```{r}
+ggplot(models, aes(x=Variable, y=Estimate, colour = Study, group=Study))+
+  geom_hline(yintercept = 0, colour = "#7294D4", linetype="dotted", lwd=1)+
+  geom_pointrange(aes(ymin=Estimate-SE*qt(0.975,df=Count-1), 
+                      ymax=Estimate+SE*qt(0.975,df=Count-1)), 
+                     lwd = 1, position = position_dodge(width = 1/2), shape = 16, fatten = 1.5)+
+  facet_grid(.~PrePostChoice)+
+  coord_flip()+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # legend.position="none"
+  )+
+  scale_colour_manual(values=wes_palette(name="GrandBudapest1", n=2))+
+  scale_x_discrete("",labels=c("Intercept", "Pre-Task\nTime Diff", "Post-Task\nTime Diff"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Experiment 1 Only
+
+
+## Time Estimate and Actual Task Time
+
+```{r}
+# create data frame to make stack plot
+
+e1<-subset(lab, Study=="In Lab E1")
+e1.ex<-subset(lab.ex, Study=="In Lab E1")
+
+# pre-task estimation
+e1.est<-melt(e1[c(1:6, 11:13)], id=c(1:6))
+names(e1.est)[c(7,8)]<- c("Task", "Time")
+e1.est$Strategy<-factor(ifelse(e1.est$Task=="Time_SearchTotal", "Search Only", "Organize First"))
+e1.est$Strategy<-factor(e1.est$Strategy, levels(e1.est$Strategy)[c(2,1)])
+e1.est$Task<-factor(recode(e1.est$Task, "'Time_SearchTotal'='Search';
+                           'Time_Org.OrgSub'='Organization'; 'Time_Org.SearchSub'='Search'"))
+e1.est$Task<-factor(e1.est$Task, levels(e1.est$Task)[c(2,1)])
+e1.est$PrePostTask<-"Pre-Task Estimation"
+
+# post-task estimation
+e1p.est<-melt(e1.ex[c(1:6, 20, 22, 23)], id=c(1:6))
+names(e1p.est)[c(7,8)]<- c("Task", "Time")
+e1p.est$Strategy<-factor(ifelse(e1p.est$Task=="PostTime_SearchTotal", "Search Only", "Organize First"))
+e1p.est$Strategy<-factor(e1p.est$Strategy, levels(e1p.est$Strategy)[c(2,1)])
+e1p.est$Task<-factor(recode(e1p.est$Task, "'PostTime_SearchTotal'='Search';
+                           'PostTime_Org.OrgSub'='Organization'; 'PostTime_Org.SearchSub'='Search'"))
+e1p.est$Task<-factor(e1p.est$Task, levels(e1p.est$Task)[c(2,1)])
+e1p.est$PrePostTask<-"Post-Task Estimation"
+
+# Actual task time
+e1a.est<-melt(e1.ex[c(1:6, 18:19)], id=c(1:6))
+names(e1a.est)[c(7,8)]<- c("Task", "Time")
+e1a.est<-e1a.est[!is.na(e1a.est$Time),]
+e1a.est$Strategy<-e1a.est$Condition
+e1a.est$Task<-factor(recode(e1a.est$Task, "'ActualTime_Org'='Organization';
+                            'ActualTime_Search'='Search'"))
+e1a.est$Task<-factor(e1a.est$Task, levels(e1a.est$Task)[c(2,1)])
+e1a.est$PrePostTask<-"Actual Task Time"
+
+
+
+# combine the two data frames
+e1.all.est<-rbind(e1.est, e1p.est, e1a.est)
+e1.all.est$PrePostTask<-factor(e1.all.est$PrePostTask)
+e1.all.est$PrePostTask<-factor(e1.all.est$PrePostTask, levels(e1.all.est$PrePostTask)[c(1,3,2)])
+
+
+```
+
+
+```{r}
+
+# stack plot template
+graph2<-ddply(e1.all.est, c("PrePostTask", "Strategy", "Task"), function(df)   
+  return(c(dep.avg=mean(df$Time), dep.sd=sd(df$Time), dep.count=length(df$Time), 
+           dep.sem=(sd(df$Time))/(sqrt(length(df$Time))))))
+print(graph2)
+
+ggplot(graph2, aes(x=Strategy, y=dep.avg, fill=Task))+ 
+  geom_bar(stat="identity", width= 0.4)+
+  facet_grid(.~PrePostTask)+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_x_discrete(name="Strategy")+
+  scale_fill_manual("Task Component", values=c("#fbd17b", "#8fd2d4"))+
+  scale_y_continuous("Estimated Task Completion Time (min)", limits=c(0, 36), breaks=seq(0, 100, 5),
+                     expand=c(0,0))
+
+  
+```
+
+## Task Switch
+
+```{r}
+graph2<-ddply(e1.ex, c("Choice"), function(df)   
+  return(c(dep.avg=mean(df$Switch.Num), dep.sd=sd(df$Switch.Num), dep.count=length(df$Switch.Num), 
+           dep.sem=(sd(df$Switch.Num))/(sqrt(length(df$Switch.Num))))))
+# print(graph2)
+
+ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Choice))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Pre-Task Choice")+
+  scale_y_continuous("Proportion Post-Task Choice Switch", breaks=seq(-1, 1, 0.2))+
+  coord_cartesian(ylim = c(-0.1, 1)) 
+
+```
+
+```{r}
+t.test(e1.ex$Switch.Num~e1.ex$Choice)
+```
+
+
+# Experiment 2 Only
+
+
+## Time Estimate and Actual Task Time
+
+```{r}
+# create data frame to make stack plot
+
+e2<-subset(lab, Study=="In Lab E2")
+e2.ex<-subset(lab.ex, Study=="In Lab E2")
+
+# pre-task estimation
+e2.est<-melt(e2[c(1:6, 11:13)], id=c(1:6))
+names(e2.est)[c(7,8)]<- c("Task", "Time")
+e2.est$Strategy<-factor(ifelse(e2.est$Task=="Time_SearchTotal", "Search Only", "Organize First"))
+e2.est$Strategy<-factor(e2.est$Strategy, levels(e2.est$Strategy)[c(2,1)])
+e2.est$Task<-factor(recode(e2.est$Task, "'Time_SearchTotal'='Search';
+                           'Time_Org.OrgSub'='Organization'; 'Time_Org.SearchSub'='Search'"))
+e2.est$Task<-factor(e2.est$Task, levels(e2.est$Task)[c(2,1)])
+e2.est$PrePostTask<-"Pre-Task Estimation"
+
+# post-task estimation
+e2p.est<-melt(e2.ex[c(1:6, 20, 22, 23)], id=c(1:6))
+names(e2p.est)[c(7,8)]<- c("Task", "Time")
+e2p.est$Strategy<-factor(ifelse(e2p.est$Task=="PostTime_SearchTotal", "Search Only", "Organize First"))
+e2p.est$Strategy<-factor(e2p.est$Strategy, levels(e2p.est$Strategy)[c(2,1)])
+e2p.est$Task<-factor(recode(e2p.est$Task, "'PostTime_SearchTotal'='Search';
+                           'PostTime_Org.OrgSub'='Organization'; 'PostTime_Org.SearchSub'='Search'"))
+e2p.est$Task<-factor(e2p.est$Task, levels(e2p.est$Task)[c(2,1)])
+e2p.est$PrePostTask<-"Post-Task Estimation"
+
+# Actual task time
+e2a.est<-melt(e2.ex[c(1:6, 18:19)], id=c(1:6))
+names(e2a.est)[c(7,8)]<- c("Task", "Time")
+e2a.est<-e2a.est[!is.na(e2a.est$Time),]
+e2a.est$Strategy<-e2a.est$Condition
+e2a.est$Task<-factor(recode(e2a.est$Task, "'ActualTime_Org'='Organization';
+                            'ActualTime_Search'='Search'"))
+e2a.est$Task<-factor(e2a.est$Task, levels(e2a.est$Task)[c(2,1)])
+e2a.est$PrePostTask<-"Actual Task Time"
+
+
+
+# combine the two data frames
+e2.all.est<-rbind(e2.est, e2p.est, e2a.est)
+e2.all.est$PrePostTask<-factor(e2.all.est$PrePostTask)
+e2.all.est$PrePostTask<-factor(e2.all.est$PrePostTask, levels(e2.all.est$PrePostTask)[c(1,3,2)])
+
+
+```
+
+
+```{r}
+
+# stack plot template
+graph2<-ddply(e2.all.est, c("PrePostTask", "Strategy", "Task"), function(df)   
+  return(c(dep.avg=mean(df$Time), dep.sd=sd(df$Time), dep.count=length(df$Time), 
+           dep.sem=(sd(df$Time))/(sqrt(length(df$Time))))))
+print(graph2)
+
+ggplot(graph2, aes(x=Strategy, y=dep.avg, fill=Task))+ 
+  geom_bar(stat="identity", width= 0.4)+
+  facet_grid(.~PrePostTask)+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_x_discrete(name="Strategy")+
+  scale_fill_manual("Task Component", values=c("#fbd17b", "#8fd2d4"))+
+  scale_y_continuous("Estimated Task Completion Time (min)", limits=c(0, 36), breaks=seq(0, 100, 5),
+                     expand=c(0,0))
+
+  
+```
+
+## Task Switch
+
+```{r}
+graph2<-ddply(e2.ex, c("Choice"), function(df)   
+  return(c(dep.avg=mean(df$Switch.Num), dep.sd=sd(df$Switch.Num), dep.count=length(df$Switch.Num), 
+           dep.sem=(sd(df$Switch.Num))/(sqrt(length(df$Switch.Num))))))
+# print(graph2)
+
+ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Choice))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Pre-Task Choice")+
+  scale_y_continuous("Proportion Post-Task Choice Switch", breaks=seq(-1, 1, 0.2))+
+  coord_cartesian(ylim = c(-0.1, 1)) 
+
+```
+
+```{r}
+t.test(e2.ex$Switch.Num~e2.ex$Choice)
+```
+
+
+
+
+
+
+
+
+# Experiment 3
+
+```{r}
+e3<-subset(lab, Study=="In Lab E3")
+
+e3.choice.pre<-glm(Choice.Num ~ EffDiff, family="binomial", data=e3)
+tab_model(e3.choice.pre, transform = NULL, show.stat = T)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
