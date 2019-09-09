@@ -1956,9 +1956,54 @@ tab_model(online.mod2, online.mod, transform = NULL)
 t.test(online$Choice.Num~online$StudyType)
 ```
 
+# Experiment 8
+
+```{r}
+raw<-read.csv("Lego Search Time N=588.csv", 
+              stringsAsFactors = FALSE)[-c(1:2, 8),-c(1:18, 103)] # removing strings that are unnecessary
+names(raw)[85]<-"Condition"
+raw[c(86)]<-read.csv(text=sub("^([0-9]+)\\+|\\-([0-9]+.*)", # looking at the observed pattern
+                              "\\1,\\2", raw$Condition), # splitting it into two columns by '+' or '-'
+        header=FALSE, col.names = c("Organize", "Gap"), stringsAsFactors=FALSE)[1] # but only take the first column
+raw$Search<-sapply(raw$Condition, function(x) eval(parse(text=x))) # get the search time by completing the expression
+raw$RefGroup<-factor(ifelse(raw$Search==raw$Organize, "Same", 
+                            ifelse(grepl("^([0-9]+)\\+([0-9]+.*)", raw$Condition), "Organize", 
+                     ifelse(grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition), "Search","???"))))
+raw$BaseGroup<-factor(ifelse(grepl("^15\\+([0-9]+.*)", raw$Condition)|
+                        grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition)&raw$Search==15, 15, 
+                      ifelse(grepl("^30\\+([0-9]+.*)", raw$Condition)|
+                        grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition)&raw$Search==30, 30, 
+                        ifelse(grepl("^60\\+([0-9]+.*)", raw$Condition)|
+                        grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition)&raw$Search==60, 60, 999))))
+
+raw$TimeDiff<-raw$Search-raw$Organize # difference score
+raw$TimeProp<-raw$TimeDiff/raw$Organize*100 # Percent change based on estimated time using organization
+
+raw<-raw[!duplicated(raw$workerId), ]
 
 
+raw<-raw[c(82:ncol(raw), 1:81)] # reordering the columns
 
+df<-NULL
+for(i in 1:nrow(raw)){ # for every row in the raw data frame
+  row<-raw[i,14:ncol(raw)][!sapply(raw[i,14:ncol(raw)], 
+                                   function(x) all(x == ""|x==" "|is.na(x)))] # remove any empty cells
+    if (length(row)< 2){
+    row$Reason=NA
+  }
+  names(row)<-c("Choice", "Reason") # combine it with the ID/Age information
+  df<-rbind(df, cbind(raw[i,1:13], row)) # combine all the rows together
+}
+
+df$Choice<-factor(df$Choice)
+df$Choice.Num<-ifelse(df$Choice=="Search without organizing", 0, 1)
+df$Category<-ifelse(df$TimeDiff==0, 3,
+                    ifelse(df$TimeDiff<=(-9), 1,
+                           ifelse(df$TimeDiff<0, 2, 
+                                  ifelse(df$TimeDiff<9, 4, 5))))
+
+e8<-df
+```
 
 
 
