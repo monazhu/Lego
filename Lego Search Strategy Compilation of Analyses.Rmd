@@ -1,7 +1,7 @@
 ---
 title: "Lego Search Strategy Compilation of Analyses"
 author: Mona Zhu
-date: Updated July 16, 2019
+date: Updated September 6, 2019
 output: 
   html_document:
     fig_width: 8
