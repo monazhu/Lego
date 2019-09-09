@@ -1949,7 +1949,6 @@ online.mod<-glm(Choice.Num~PreTimeDiff*StudyType, family="binomial", data=online
 online.mod2<-glm(Choice.Num~PreTimeDiff+StudyType, family="binomial", data=online)
 
 tab_model(online.mod2, online.mod, transform = NULL)
-
 ```
 
 
