@@ -34,6 +34,7 @@ library(lme4)
 library(RColorBrewer)
 library(openxlsx)
 library(corrplot)
+library(ggalluvial)
 ```
 
 ```{r}
@@ -111,14 +112,18 @@ geom_split_violin <- function (mapping = NULL, data = NULL, stat = "ydensity", p
 
 **NOTE:** Difference scores calculated as the *Search* condition minius *Organization* condition. Positive scores mean that organization is perceived to take less time than search. Proportion scores are calculated as *(Search-Organization)/Organization*
 
+# In-Lab Experiments
+
+```{r}
+lab<-subset(df, StudyType=="In Lab")
+lab.ex<-subset(lab, Exclusion!="Exclude")
+```
+
 
 # Experiment 1 Only
 
 ```{r}
 # create data frame to make stack plot
-
-lab<-subset(df, StudyType=="In Lab")
-lab.ex<-subset(lab, Exclusion!="Exclude")
 
 e1<-subset(df, Study=="In Lab E1")
 e1.ex<-subset(e1, Exclusion!="Exclude")
@@ -730,6 +735,84 @@ t.test(e2.ex$Switch.Num~e2.ex$Choice)
 ```
 
 
+## Objective Progress
+
+```{r}
+e2.ex$TaskBegin<-0 # create a column for the start of the task
+objprog<-melt(e2.ex, id=c(1:17, 19, 21:36),
+              variable.name = "TaskStart", value.name = "Time")
+objprog$TaskStart<-factor(recode(objprog$TaskStart, "'ActualTime_Org'='Search Start';
+                          'ActualTime_Total'='Search End';
+                          'TaskBegin'='Task Start'"))
+objprog$TaskStart<-factor(objprog$TaskStart, levels(objprog$TaskStart)[c(3,2,1)])
+objprog$Time<-recode(objprog$Time, "NA=0")
+
+objp<-merge(objprog, e2.ex[c(2, 20)], by="ID", all.x=T, all.y=F) # getting total task time again to calc. progress
+objp$Progress<-objp$Time/objp$ActualTime_Total
+objp$Response<-ifelse(objp$ActualTime_Total==objp$Time, 0, objp$ActualTime_Total)
+objp$Type<-"Objective"
+
+prog$Type<-"Estimated"
+
+prog.all<-rbind(prog[c(1,6, 43, 40, 44)], objp[c(1,6, 38:40)])
+
+```
+
+
+### "Standardized" Progress (objective and self-reported combined)
+
+```{r}
+ggplot(prog.all, aes(x=Progress, y=Response, colour=interaction(Type, Condition)))+
+  geom_point(size = 3)+
+  scale_colour_manual(values = wes_palette("GrandBudapest1", 4))+
+  geom_smooth(formula = y~x, method = loess, se=F)+
+  scale_y_continuous("Time Remaining", limits=c(0, 49))+
+  scale_x_continuous("Standardized Progress")+
+  theme(# remove the background & grid altogether
+    panel.background= element_rect(fill=NA), 
+    plot.background = element_rect(fill=NA, colour=NA),
+    panel.grid.minor=element_blank(), 
+    axis.ticks.x=element_blank(),
+    panel.border = element_rect(fill="transparent", colour="grey"))
+```
+
+```{r}
+ggplot(prog.all, aes(x=Progress, y=Response, colour=Type))+
+  geom_point(size = 3)+
+  facet_grid(.~Condition)+
+  scale_colour_manual(values = wes_palette("GrandBudapest2", 2))+
+  geom_smooth(formula = y~x, method = loess, se=F)+
+  scale_y_continuous("Time Remaining", limits=c(0, 49))+
+  scale_x_continuous("Standardized Progress")+
+  theme(# remove the background & grid altogether
+    panel.background= element_rect(fill=NA), 
+    plot.background = element_rect(fill=NA, colour=NA),
+    panel.grid.minor=element_blank(), 
+    axis.ticks.x=element_blank(),
+    panel.border = element_rect(fill="transparent", colour="grey"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # E1 E2 combined
 
@@ -1012,6 +1095,83 @@ ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Choice))+
 ```{r}
 t.test(e3.ex$Switch.Num~e3.ex$Choice)
 ```
+
+
+## Objective Progress
+
+```{r}
+e3.ex$TaskBegin<-0 # create a column for the start of the task
+objprog<-melt(e3.ex, id=c(1:17, 19, 21:36),
+              variable.name = "TaskStart", value.name = "Time")
+objprog$TaskStart<-factor(recode(objprog$TaskStart, "'ActualTime_Org'='Search Start';
+                          'ActualTime_Total'='Search End';
+                          'TaskBegin'='Task Start'"))
+objprog$TaskStart<-factor(objprog$TaskStart, levels(objprog$TaskStart)[c(3,2,1)])
+objprog$Time<-recode(objprog$Time, "NA=0")
+
+objp<-merge(objprog, e3.ex[c(2, 20)], by="ID", all.x=T, all.y=F) # getting total task time again to calc. progress
+objp$Progress<-objp$Time/objp$ActualTime_Total
+objp$PerceivedProgress<-ifelse(objp$ActualTime_Total==objp$Time, 1, 0)
+objp$Type<-"Objective"
+objp<-subset(objp, ID!="321484")
+prog$Type<-"Estimated"
+
+prog.all<-rbind(prog[c(1,6, 45, 43, 46)], objp[c(1,6, 38:40)])
+
+```
+
+
+### "Standardized" Progress (objective and self-reported combined)
+
+```{r}
+ggplot(prog.all, aes(x=Progress, y=PerceivedProgress, colour=interaction(Type, Condition)))+
+  geom_point(size = 3)+
+  scale_colour_manual(values = wes_palette("GrandBudapest1", 4))+
+  geom_smooth(formula = y~x, method = loess, se=F)+
+  scale_y_continuous("Time Remaining")+
+  scale_x_continuous("Standardized Progress")+
+  theme(# remove the background & grid altogether
+    panel.background= element_rect(fill=NA), 
+    plot.background = element_rect(fill=NA, colour=NA),
+    panel.grid.minor=element_blank(), 
+    axis.ticks.x=element_blank(),
+    panel.border = element_rect(fill="transparent", colour="grey"))
+```
+
+```{r}
+ggplot(prog.all, aes(x=Progress, y=PerceivedProgress, colour=Type))+
+  geom_point(size = 3)+
+  facet_grid(.~Condition)+
+  scale_colour_manual(values = wes_palette("GrandBudapest2", 2))+
+  geom_smooth(formula = y~x, method = loess, se=F)+
+  scale_y_continuous("Time Remaining")+
+  scale_x_continuous("Standardized Progress")+
+  theme(# remove the background & grid altogether
+    panel.background= element_rect(fill=NA), 
+    plot.background = element_rect(fill=NA, colour=NA),
+    panel.grid.minor=element_blank(), 
+    axis.ticks.x=element_blank(),
+    panel.border = element_rect(fill="transparent", colour="grey"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # E1-3 Switch From Assigned Strategy?
 ```{r}
@@ -1956,54 +2116,1122 @@ tab_model(online.mod2, online.mod, transform = NULL)
 t.test(online$Choice.Num~online$StudyType)
 ```
 
+
+
 # Experiment 8
 
 ```{r}
-raw<-read.csv("Lego Search Time N=588.csv", 
-              stringsAsFactors = FALSE)[-c(1:2, 8),-c(1:18, 103)] # removing strings that are unnecessary
-names(raw)[85]<-"Condition"
-raw[c(86)]<-read.csv(text=sub("^([0-9]+)\\+|\\-([0-9]+.*)", # looking at the observed pattern
-                              "\\1,\\2", raw$Condition), # splitting it into two columns by '+' or '-'
-        header=FALSE, col.names = c("Organize", "Gap"), stringsAsFactors=FALSE)[1] # but only take the first column
-raw$Search<-sapply(raw$Condition, function(x) eval(parse(text=x))) # get the search time by completing the expression
-raw$RefGroup<-factor(ifelse(raw$Search==raw$Organize, "Same", 
-                            ifelse(grepl("^([0-9]+)\\+([0-9]+.*)", raw$Condition), "Organize", 
-                     ifelse(grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition), "Search","???"))))
-raw$BaseGroup<-factor(ifelse(grepl("^15\\+([0-9]+.*)", raw$Condition)|
-                        grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition)&raw$Search==15, 15, 
-                      ifelse(grepl("^30\\+([0-9]+.*)", raw$Condition)|
-                        grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition)&raw$Search==30, 30, 
-                        ifelse(grepl("^60\\+([0-9]+.*)", raw$Condition)|
-                        grepl("^([0-9]+)\\-([0-9]+.*)", raw$Condition)&raw$Search==60, 60, 999))))
+raw<-read.csv("E8 - Lego Search Time (Organized) n=588 (coded).csv")
+e8<-raw[!(raw$Mention.of.time==""| duplicated(raw$workerId)),] # removing duplicate rows
 
-raw$TimeDiff<-raw$Search-raw$Organize # difference score
-raw$TimeProp<-raw$TimeDiff/raw$Organize*100 # Percent change based on estimated time using organization
-
-raw<-raw[!duplicated(raw$workerId), ]
-
-
-raw<-raw[c(82:ncol(raw), 1:81)] # reordering the columns
-
-df<-NULL
-for(i in 1:nrow(raw)){ # for every row in the raw data frame
-  row<-raw[i,14:ncol(raw)][!sapply(raw[i,14:ncol(raw)], 
-                                   function(x) all(x == ""|x==" "|is.na(x)))] # remove any empty cells
-    if (length(row)< 2){
-    row$Reason=NA
-  }
-  names(row)<-c("Choice", "Reason") # combine it with the ID/Age information
-  df<-rbind(df, cbind(raw[i,1:13], row)) # combine all the rows together
-}
-
-df$Choice<-factor(df$Choice)
-df$Choice.Num<-ifelse(df$Choice=="Search without organizing", 0, 1)
-df$Category<-ifelse(df$TimeDiff==0, 3,
-                    ifelse(df$TimeDiff<=(-9), 1,
-                           ifelse(df$TimeDiff<0, 2, 
-                                  ifelse(df$TimeDiff<9, 4, 5))))
-
-e8<-df
+e8$Reasoning<-factor(ifelse(e8$Mention.of.time=="y", "Task Time",
+                      ifelse(e8$Prefer.organize=="y", "Organization Preference",
+                             ifelse(e8$Prefer.Search=="y", "Direct Search Preference", "Other"))))
+e8$Reasoning<-factor(e8$Reasoning, levels(e8$Reasoning)[c(4,2,1,3)])
 ```
+
+
+## Choice As a Function of Time
+
+```{r}
+graph2<-ddply(e8, c("TimeDiff"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour="maroon"))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon"))+
+  scale_x_continuous("Time Difference\n(Search - Organize)")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1)) 
+
+```
+
+### Time Difference Model
+
+```{r}
+model.e8<-glm(Choice.Num ~ TimeDiff, family="binomial", data=e8)
+tab_model(model.e8, transform = NULL)
+coef<-cbind(
+  data.frame(Variable=rownames(summary(model.e8)$ coefficients), Count=nrow(e8)),
+  as.data.frame(summary(model.e8)$ coefficients))
+
+names(coef)[4:6]=c("SE", "zValue","pValue")
+coef$Variable<-factor(coef$Variable, levels(coef$Variable)[c(2,1)])
+coef$Odds<-exp(coef$Estimate)
+coef[c(1,3,7,6)]
+
+# plot of coeficients
+ggplot(coef, aes(x=Variable, y=Estimate, colour = "maroon"))+
+  geom_hline(yintercept = 0, colour = "maroon", linetype="dotted", lwd=1)+
+  geom_pointrange(aes(ymin=Estimate-SE*qt(0.975,df=Count-1), 
+                      ymax=Estimate+SE*qt(0.975,df=Count-1)), 
+                     lwd = 1, position = position_dodge(width = 1/2), shape = 16, fatten = 1.5)+
+  coord_flip()+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  scale_colour_manual(values="maroon")+
+  scale_x_discrete("",labels=c("Time Difference\nSearch-Organize","Intercept"))
+
+```
+
+## By Base Time (15 vs. 30 vs. 60 min) 
+
+### Time Difference 
+
+```{r, warning=F, message=F}
+graph2<-ddply(e8, c("TimeDiff", "BaseGroup"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+graph2$BaseGroup<-factor(graph2$BaseGroup) # factorize "Base Group" for plotting
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=BaseGroup))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  # geom_line()+
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=wes_palette("Darjeeling1", 3))+
+  scale_x_continuous("Time Difference")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1)) 
+
+```
+
+
+```{r}
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=BaseGroup))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_line()+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  facet_grid(BaseGroup~.)+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=wes_palette("Darjeeling1", 3))+
+  scale_x_continuous("Time Difference")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1)) 
+```
+
+
+```{r}
+e8$BaseGroup.cen<-e8$BaseGroup-mean(e8$BaseGroup)
+
+e8.mod2<-glm(Choice.Num ~ TimeDiff+BaseGroup.cen, family="binomial", data=e8)
+e8.mod3<-glm(Choice.Num ~ TimeDiff*BaseGroup.cen, family="binomial", data=e8)
+
+tab_model(e8.mod2, e8.mod3, transform=NULL)
+
+```
+
+
+#### Regression
+
+
+```{r}
+sub.15<-subset(e8, BaseGroup==15)
+model.diff.15<-glm(Choice.Num ~ TimeDiff, family="binomial", data=sub.15)
+coef.diff.15<-cbind(
+  data.frame(BaseGroup="15 min", Variable=rownames(summary(model.diff.15)$ coefficients), Count=nrow(sub.15)),
+  as.data.frame(summary(model.diff.15)$ coefficients))
+
+sub.30<-subset(e8, BaseGroup==30)
+model.diff.30<-glm(Choice.Num ~ TimeDiff, family="binomial", data=sub.30)
+coef.diff.30<-cbind(
+  data.frame(BaseGroup="30 min", Variable=rownames(summary(model.diff.30)$ coefficients), Count=nrow(sub.30)),
+  as.data.frame(summary(model.diff.30)$ coefficients))
+
+sub.60<-subset(e8, BaseGroup==60)
+model.diff.60<-glm(Choice.Num ~ TimeDiff, family="binomial", data=sub.60)
+coef.diff.60<-cbind(
+  data.frame(BaseGroup="60 min", Variable=rownames(summary(model.diff.60)$ coefficients), Count=nrow(sub.60)),
+  as.data.frame(summary(model.diff.60)$ coefficients))
+
+models<-rbind(coef.diff.15, coef.diff.30, coef.diff.60)
+names(models)[5:7]=c("SE", "zValue","pValue")
+models$Variable<-factor(models$Variable, levels(models$Variable)[c(2,1)])
+models$Odds<-exp(models$Estimate)
+models[c(1:2,4,8,7)]
+
+# plot of coeficients
+ggplot(models, aes(x=Variable, y=Estimate, colour = BaseGroup))+
+  geom_hline(yintercept = 0, linetype="dotted", lwd=1)+
+  geom_pointrange(aes(ymin=Estimate-SE*qt(0.975,df=Count-1), 
+                      ymax=Estimate+SE*qt(0.975,df=Count-1)), 
+                     lwd = 1, position = position_dodge(width = 1/2), shape = 16, fatten = 1.5)+
+  coord_flip()+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_colour_manual(values=wes_palette("Darjeeling1", 3))+
+  scale_x_discrete("",labels=c("Time Difference\nSearch-Organize","Intercept"))
+
+```
+
+
+## Individual Differences in Strategy Preference
+
+Individuals' reasons for their chosen strategy (free response) were coded into 3 categories: 
+
+1. Decisions were made based on relative task time
+2. Decisions were based on either a need to organize*
+3. Decisions were biased against organizatin (i.e., preference for direct search)
+
+A 4th category (26 individuals; 4.4%) consisted of individuals who did not provide a response or provided responses that cannot be categorized into 1-3. These peple were removed from the study
+
+
+### Proportion of People That Provide Respective Reason ("Other" Not Included) {.tabset}
+
+#### Overall
+
+```{r}
+freq<-data.frame(count(e8$Reasoning), 
+                 count(e8$Reasoning)[2]/nrow(e8), 
+                 sqrt((count(e8$Reasoning)[2]/nrow(e8))*(1-count(e8$Reasoning)[2]/nrow(e8))))
+names(freq)<-c("Reasoning", "dep.count", "dep.avg", "dep.sd")
+
+ggplot(freq, aes(x=Reasoning, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Reason")+
+  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.55))
+
+```
+
+
+
+#### Parsed by Time Difference (as Categories)
+
+```{r}
+table<-as.data.frame(table(e8[c(21, 22)]))
+counts<-count(e8[c(21)])
+names(counts)<-c("Category", "TotalFreq")
+
+m<-merge(table, counts, by="Category")
+m$Category<-as.numeric(as.character(m$Category))
+m$dep.avg<-m$Freq/m$TotalFreq
+m$dep.sd<-sqrt(m$dep.avg*(1-m$dep.avg))
+m$dep.count<-m$Freq
+
+ggplot(m, aes(x=Category, y=dep.avg, colour=Reasoning))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.15))+
+  geom_line(position = position_dodge(0.15))+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.15))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(4,3,1,2)])+
+  scale_x_continuous("Time Difference (as Categories)", 
+                     labels=c("-25 - -10%", "-5 - -1%", "0%", "1 - 5%", "10 - 25%"))+
+  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))
+
+```
+
+
+
+## Choice Based on Reason Provided
+
+```{r, message=F, warning=F}
+graph2<-ddply(e8, c("TimeDiff", "Reasoning"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Reasoning))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.15))+
+  # geom_line(position = position_dodge(0.15))+
+  stat_smooth(data = e8, aes(x = TimeDiff, y = Choice.Num), method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.15))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(4,3,1,2)])+
+  scale_x_continuous("Time Difference\n(Search - Organization)")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1)) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Experiment 9
+
+```{r}
+
+raw<-read.csv("E9 - Lego Search Time E2 N=201 (coded).csv",
+              stringsAsFactors = FALSE)[-c(1:2, 7),-c(1:18)] # removing strings that are unnecessary
+names(raw)[ncol(raw)-1]<-"Order"
+d<-as.data.frame(strsplit(raw$Order, "\\|"))[1,] # extract which condition was presented first
+names(d)<-raw$workerId
+melted<-melt(d, id=c())
+names(melted)<-c("workerId", "Condition")
+merged<-merge(raw, melted, by="workerId")
+
+merged$Condition<-recode(merged$Condition, "'+25'=25; '-25'=-25; '+0'=0")
+merged$Reasoning<-factor(recode(merged$Reason1, 
+                         "'I prefer to directly search for the pieces, regardless of how long it takes'='Direct Search Preference';
+                         'I prefer to organize the pieces first, regardless of how long it takes'='Organization Preference';
+                         'I prefer whichever strategy that would minimize task time'='Minimize Time';
+                         'I prefer whichever strategy that would maximize task time'='Maximize Time'"))
+merged$Reasoning<-factor(merged$Reasoning, levels(merged$Reasoning)[c(3,2,4,1,5)])
+merged$BhvrCat<-factor(
+  ifelse(merged$Q1=="Search without organizing"&merged$Q2=="Search without organizing", "Direct Search Preference",
+  ifelse(merged$Q1=="Organize then search"&merged$Q2=="Organize then search", "Organization Preference",
+  ifelse(merged$Q1=="Search without organizing"&merged$Q2=="Organize then search", "Minimize Time",
+         "Maximize Time"))))
+merged$BhvrCat<-factor(merged$BhvrCat, levels(merged$BhvrCat)[c(3,2,4,1)])
+
+merged<-merged[!duplicated(merged$workerId), ]
+
+df<-melt(merged, id=c(1:4, 8:ncol(merged)), variable.name = "TimeDiff", value.name = "Choice")
+df$TimeDiff<-as.numeric(as.character(recode(df$TimeDiff, "'Q1'=-25; 'Q2'=25; 'Q3'=0")))
+df$Choice.Num<-ifelse(df$Choice=="Search without organizing", 0, 
+                      ifelse(df$Choice=="Organize then search", 1, 999))
+
+sub<-subset(df, Exclusion!="Yes")
+
+first<-subset(df, df$Condition==df$TimeDiff)
+first.sub<-subset(sub, sub$Condition==sub$TimeDiff)
+
+Q3<-subset(df, df$TimeDiff==0)
+Q3.sub<-subset(sub, sub$TimeDiff==0)
+
+```
+
+
+## Choice in Strategy
+
+```{r}
+sub$Full<-"Full Set"
+first.sub$Full<-"First Qn Only"
+
+choice<-rbind(sub, first.sub)
+
+graph2<-ddply(choice, c("TimeDiff", "Full"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Full))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_colour_manual("Full Qn Set?", values=wes_palette("IsleofDogs1", 2))+
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_x_continuous("Time Difference\n(Search - Organize)")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))
+```
+
+
+### Time Difference Model
+
+```{r}
+model.e9<-glmer(Choice.Num ~ TimeDiff+(1|workerId), family="binomial", data=sub)
+
+model.e9.1<-glm(Choice.Num ~ TimeDiff, family="binomial", data=first.sub)
+tab_model(model.e9, model.e9.1, transform = NULL)
+
+coef<-cbind(
+  data.frame(Full="Full Set", Variable=rownames(summary(model.e9)$coefficients), Count=nrow(sub)/3),
+  as.data.frame(summary(model.e9)$ coefficients), ConfLow=confint(model.e9, method="Wald")[c(2,3),1],
+  ConfHigh=confint(model.e9, method="Wald")[c(2,3),2])
+
+coef1<-cbind(
+  data.frame(Full="First Qn Only",Variable=rownames(summary(model.e9.1)$coefficients), Count=nrow(first.sub)),
+  as.data.frame(summary(model.e9.1)$ coefficients), ConfLow=confint(model.e9.1, method="Wald")[,1],
+  ConfHigh=confint(model.e9.1, method="Wald")[,2])
+
+coefs<-rbind(coef, coef1)
+
+names(coefs)[5:7]=c("SE", "zValue","pValue")
+coefs$Variable<-factor(coefs$Variable, levels(coefs$Variable)[c(2,1)])
+coefs$Odds<-exp(coefs$Estimate)
+# coef[c(1,3,7,6)]
+
+# plot of coeficients
+ggplot(coefs, aes(x=Variable, y=Estimate, colour = Full))+
+  geom_hline(yintercept = 0, colour = "maroon", linetype="dotted", lwd=1)+
+  geom_pointrange(aes(ymin=ConfLow, 
+                      ymax=ConfHigh), 
+                     lwd = 1, position = position_dodge(width = 1/2), shape = 16, fatten = 1.5)+
+  coord_flip()+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", 2))+
+  scale_x_discrete("",labels=c("Time Difference\nSearch-Organize","Intercept"))
+
+```
+
+
+## Proportion of People That Provide Respective Reason ("Other" Not Included) {.tabset}
+
+### Based on Self-Reported Strategy Selection
+
+```{r}
+freq<-data.frame(count(sub$Reasoning), 
+                 count(sub$Reasoning)[2]/nrow(sub), 
+                 sqrt((count(sub$Reasoning)[2]/nrow(sub))*(1-count(sub$Reasoning)[2]/nrow(sub))))
+names(freq)<-c("Reasoning", "dep.count", "dep.avg", "dep.sd")
+
+ggplot(freq, aes(x=Reasoning, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Reason")+
+  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.7))
+
+```
+
+
+```{r}
+freq<-data.frame(count(first.sub$BhvrCat), 
+                 count(first.sub$BhvrCat)[2]/nrow(first.sub), 
+                 sqrt((count(first.sub$BhvrCat)[2]/nrow(first.sub))*(1-count(first.sub$BhvrCat)[2]/nrow(first.sub))))
+names(freq)<-c("BhvrCat", "dep.count", "dep.avg", "dep.sd")
+
+ggplot(freq, aes(x=BhvrCat, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Behavioural Category")+
+  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.75))
+```
+
+```{r}
+
+graph2<-ddply(Q3.sub, c("BhvrCat"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=BhvrCat, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Behavioural Category")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0("N = ", dep.count), digits = 4, colour="black"), y = 0))
+```
+
+### Using Behavioural Categories to Predict Choice
+
+```{r}
+pred.choi<-glm(Choice.Num~BhvrCat, family="binomial", data = Q3.sub)
+tab_model(pred.choi, transform=NULL)
+```
+
+
+### Choice as a Function of Self-Reported Strategy Preference
+
+```{r}
+graph2<-ddply(sub, c("TimeDiff", "Reasoning"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Reasoning))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.15))+
+  # geom_line(position = position_dodge(0.15))+
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.15))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual("Reason for Choice", values=c(wes_palette("GrandBudapest2", 4), 
+                                                    wes_palette("IsleofDogs1", 1)))+
+  scale_x_continuous("Time Difference\n(Search - Organization)")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))
+
+```
+
+
+## Alluvial Graph
+
+```{r}
+library(dplyr)
+# organizing data table
+tab <- first.sub %>%
+  group_by(Reasoning, BhvrCat) %>%
+  count()
+
+# png(file = "AlluvialGraph.png", bg = "transparent", type = c("cairo"), width=1200, height=550, res=300)
+
+ggplot(tab, aes(axis1 = Reasoning, axis2 = BhvrCat, y = n)) +
+  geom_alluvium(aes(fill = Reasoning)) +
+  geom_stratum() +
+  geom_text(stat = "stratum", label.strata = TRUE) +
+  scale_x_discrete(limits = c("Self-Report", "Behavioural\nCategories"),
+                   expand = c(.1, .1)) +
+  labs(y = "Frequency")+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_fill_manual("Self-Reported\nCategories", values=c(wes_palette("GrandBudapest2", 4),
+                                                          wes_palette("IsleofDogs1", 1)))
+
+# dev.off()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Experiment 10
+
+```{r}
+detach("package:dplyr", unload=TRUE)
+
+raw<-read.csv("E10 - Lego Search Strategy E3_N=200.csv", 
+              stringsAsFactors = FALSE)[-c(1:2),-c(1:13,16:18)] # removing strings that are unnecessary
+names(raw)[ncol(raw)]<-"Order"
+d<-as.data.frame(strsplit(raw$Order, "\\|"))[1,] # extract which condition was presented first
+names(d)<-raw$workerId
+melted<-melt(d, id=c())
+names(melted)<-c("workerId", "Condition")
+merged<-merge(raw, melted, by="workerId")
+names(merged)[c(14,15)]<-c("Work", "Living")
+merged$Work<-as.numeric(recode(merged$Work, "'Not at all organized'='1';
+                      'Extremely organized'='6';
+                      '3'='2'; '4'='3'; '5'='4';'6'='5'"))
+merged$Living<-as.numeric(recode(merged$Living, "'Not at all organized'='1';
+                      'Extremely organized'='6';
+                      '11'='2'; '12'='3'; '13'='4';'14'='5'"))
+
+merged$Condition<-recode(merged$Condition, "'+25'=25; '-25'=-25; '+0'=0")
+merged$Reasoning<-factor(recode(merged$Reason1, 
+                         "'I prefer to directly search for the pieces, regardless of how long it takes'='Direct Search Preference';
+                         'I prefer to organize the pieces first, regardless of how long it takes'='Organization Preference';
+                         'I prefer whichever strategy that would minimize task time'='Minimize Time';
+                         'I prefer whichever strategy that would maximize task time'='Maximize Time'"))
+merged$Reasoning<-factor(merged$Reasoning, levels(merged$Reasoning)[c(3,2,4,1,5)])
+merged$BhvrCat<-factor(
+  ifelse(merged$Q1=="Search without organizing"&merged$Q2=="Search without organizing", "Direct Search Preference",
+  ifelse(merged$Q1=="Organize then search"&merged$Q2=="Organize then search", "Organization Preference",
+  ifelse(merged$Q1=="Search without organizing"&merged$Q2=="Organize then search", "Minimize Time",
+         "Maximize Time"))))
+merged$BhvrCat<-factor(merged$BhvrCat, levels(merged$BhvrCat)[c(3,2,4,1)])
+
+merged<-merged[!duplicated(merged$workerId), ]
+
+# data cleaning: removing duplicate geolocations
+lat<-as.data.frame(table(raw[c(1)]))
+repLat<-as.numeric(as.character(lat$Var1[lat$Freq>=2])) # list of repeated values in the latitutdes
+
+long<-as.data.frame(table(raw[c(2)]))
+repLong<-as.numeric(as.character(long$Var2[long$Freq>=2])) # list of repeated longitude coordinates
+
+
+merged$Exclusion<-factor(ifelse(merged$LocationLatitude %in% repLat|merged$LocationLongitude %in% repLong,
+                           "RepeatedGeolocation", "Include")) # creating exclusion criteria 
+
+# note: no one needed tobe excluded based on geo-location screening for this round
+
+df<-melt(merged, id=c(1:6, 10:22))
+names(df)[c(20:21)]<-c("TimeDiff", "Choice") # changing Q1-3 to the respective time difference
+df$TimeDiff<-as.numeric(as.character(recode(df$TimeDiff, "'Q1'=-25; 'Q2'=25; 'Q3'=0")))
+df$Choice.Num<-ifelse(df$Choice=="Search without organizing", 0, 
+                      ifelse(df$Choice=="Organize then search", 1, 999))
+
+# data subsets
+
+first.sub<-subset(df, df$Condition==df$TimeDiff)
+
+Q3.sub<-subset(df, df$TimeDiff==0)
+```
+
+## Choice in Strategy
+
+```{r}
+df$Full<-"Full Set"
+first.sub$Full<-"First Qn Only"
+
+choice<-rbind(df, first.sub)
+
+graph2<-ddply(choice, c("TimeDiff", "Full"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Full))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_colour_manual("Full Qn Set?", values=wes_palette("IsleofDogs1", 2))+
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_x_continuous("Time Difference\n(Search - Organize)")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))
+```
+
+
+### Time Difference Model
+
+```{r}
+model.e10<-glmer(Choice.Num ~ TimeDiff+(1|workerId), family="binomial", data=df)
+
+model.e10.1<-glm(Choice.Num ~ TimeDiff, family="binomial", data=first.sub)
+tab_model(model.e10, model.e10.1, transform = NULL)
+
+coef<-cbind(
+  data.frame(Full="Full Set", Variable=rownames(summary(model.e10)$coefficients), Count=nrow(df)/3),
+  as.data.frame(summary(model.e10)$ coefficients), ConfLow=confint(model.e10, method="Wald")[c(2,3),1],
+  ConfHigh=confint(model.e10, method="Wald")[c(2,3),2])
+
+coef1<-cbind(
+  data.frame(Full="First Qn Only",Variable=rownames(summary(model.e10.1)$coefficients), Count=nrow(first.sub)),
+  as.data.frame(summary(model.e10.1)$ coefficients), ConfLow=confint(model.e10.1, method="Wald")[,1],
+  ConfHigh=confint(model.e10.1, method="Wald")[,2])
+
+coefs<-rbind(coef, coef1)
+
+names(coefs)[5:7]=c("SE", "zValue","pValue")
+coefs$Variable<-factor(coefs$Variable, levels(coefs$Variable)[c(2,1)])
+coefs$Odds<-exp(coefs$Estimate)
+# coef[c(1,3,7,6)]
+
+# plot of coeficients
+ggplot(coefs, aes(x=Variable, y=Estimate, colour = Full))+
+  geom_hline(yintercept = 0, colour = "maroon", linetype="dotted", lwd=1)+
+  geom_pointrange(aes(ymin=ConfLow, 
+                      ymax=ConfHigh), 
+                     lwd = 1, position = position_dodge(width = 1/2), shape = 16, fatten = 1.5)+
+  coord_flip()+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", 2))+
+  scale_x_discrete("",labels=c("Time Difference\nSearch-Organize","Intercept"))
+
+```
+
+
+## Proportion of People That Provide Respective Reason ("Other" Not Included) {.tabset}
+
+### Based on Self-Reported Strategy Selection
+
+```{r}
+freq<-data.frame(count(df$Reasoning), 
+                 count(df$Reasoning)[2]/nrow(df), 
+                 sqrt((count(sub$Reasoning)[2]/nrow(df))*(1-count(sub$Reasoning)[2]/nrow(df))))
+names(freq)<-c("Reasoning", "dep.count", "dep.avg", "dep.sd")
+
+ggplot(freq, aes(x=Reasoning, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Reason")+
+  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.75))
+
+```
+
+
+```{r}
+freq<-data.frame(count(first.sub$BhvrCat), 
+                 count(first.sub$BhvrCat)[2]/nrow(first.sub), 
+                 sqrt((count(first.sub$BhvrCat)[2]/nrow(first.sub))*(1-count(first.sub$BhvrCat)[2]/nrow(first.sub))))
+names(freq)<-c("BhvrCat", "dep.count", "dep.avg", "dep.sd")
+
+ggplot(freq, aes(x=BhvrCat, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Behavioural Category")+
+  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.9))
+```
+
+```{r}
+
+graph2<-ddply(Q3.sub, c("BhvrCat"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=BhvrCat, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+  # geom_line()+
+  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=c("maroon", "maroon"))+
+  scale_x_discrete("Behavioural Category")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0("N = ", dep.count), digits = 4, colour="black"), y = 0))
+```
+
+### Using Behavioural Categories to Predict Choice
+
+```{r}
+pred.choi<-glm(Choice.Num~BhvrCat, family="binomial", data = Q3.sub)
+tab_model(pred.choi, transform=NULL)
+```
+
+
+### Choice as a Function of Self-Reported Strategy Preference
+
+```{r}
+graph2<-ddply(sub, c("TimeDiff", "Reasoning"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Reasoning))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.15))+
+  # geom_line(position = position_dodge(0.15))+
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.15))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual("Reason for Choice", values=c(wes_palette("GrandBudapest2", 4), 
+                                                    wes_palette("IsleofDogs1", 1)))+
+  scale_x_continuous("Time Difference\n(Search - Organization)")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))
+
+```
+
+
+## Alluvial Graph
+
+```{r}
+library(dplyr)
+# organizing data table
+tab <- first.sub %>%
+  group_by(Reasoning, BhvrCat) %>%
+  count()
+
+# png(file = "AlluvialGraph.png", bg = "transparent", type = c("cairo"), width=1200, height=550, res=300)
+
+ggplot(tab, aes(axis1 = Reasoning, axis2 = BhvrCat, y = n)) +
+  geom_alluvium(aes(fill = Reasoning)) +
+  geom_stratum() +
+  geom_text(stat = "stratum", label.strata = TRUE) +
+  scale_x_discrete(limits = c("Self-Report", "Behavioural\nCategories"),
+                   expand = c(.1, .1)) +
+  labs(y = "Frequency")+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_fill_manual("Self-Reported\nCategories", values=c(wes_palette("GrandBudapest2", 4),
+                                                          wes_palette("IsleofDogs1", 1)))
+
+# dev.off()
+```
+
+```{r}
+sub<-subset(df, TimeDiff==0)
+sub.melt<-melt(sub, id=c(1:10, 13:ncol(sub)), 
+               variable.name = "Space", value.name = "Rating")
+
+graph1=ddply(sub.melt, c("workerId", "Choice", "Space"), summarise,
+             dep.avg=mean(Rating, na.rm=T)) # change DV
+# head(graph1)
+graph2=ddply(graph1, c("Choice", "Space"), function(df)  
+  return(c(dep.avg=mean(df$dep.avg, na.rm=T), dep.sd=sd(df$dep.avg, na.rm=T), dep.count=length(df$dep.avg), dep.sem=(sd(df$dep.avg, na.rm=T))/(sqrt(length(df$dep.avg))))))
+# print(graph2)
+
+ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Space))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.15))+
+  # geom_line(position = position_dodge(0.15))+
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0, position = position_dodge(0.15))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
+  # geom_hline(yintercept = 3.5, linetype="dotted")+
+  scale_colour_manual("Type of Space", labels=c("Work Space", "Living Space"), values=wes_palettes$GrandBudapest1[c(1,4)])+
+  scale_x_discrete("Choice (No Difference in Task Time)")+
+  scale_y_continuous("Rating", breaks=seq(-10, 10, 1))+
+  coord_cartesian(ylim = c(1, 6)) 
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
