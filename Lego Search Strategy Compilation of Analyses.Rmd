@@ -142,6 +142,7 @@ lab.choice$PrePostChoice<-factor(recode(lab.choice$PrePostChoice, "'Choice.Num'=
 lab.choice$PrePostChoice<-factor(lab.choice$PrePostChoice, levels(lab.choice$PrePostChoice)[c(2,1)])
 ```
 
+
 ```{r}
 graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E1",], c("Study", "PrePostChoice"), function(df)   
   return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), dep.count=length(df$Choice.Num), 
@@ -334,12 +335,12 @@ tab_model(e1.postchoice4, e1.postchoice5, e1.postchoice6, transform=NULL, show.s
 ## Task Switch
 
 ```{r}
-graph2<-ddply(e1.ex, c("Choice"), function(df)   
+graph2<-ddply(e1.ex, c("Choice", "Condition"), function(df)   
   return(c(dep.avg=mean(df$Switch.Num), dep.sd=sd(df$Switch.Num), dep.count=length(df$Switch.Num), 
            dep.sem=(sd(df$Switch.Num))/(sqrt(length(df$Switch.Num))))))
 # print(graph2)
 
-ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Choice))+ 
+ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Condition))+ 
   geom_point(size=4, shape=17, position = position_dodge(0.5))+
   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
@@ -354,46 +355,61 @@ ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Choice))+
     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
     axis.text = element_text(color="#432620"),
     legend.key = element_rect(fill = "transparent", colour = "transparent")
-    ,legend.position="none"
+    # ,legend.position="none"
   )+
-  scale_colour_manual(values=c("maroon", "maroon"))+
   scale_x_discrete("Pre-Task Choice")+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", n=2))+
   scale_y_continuous("Proportion Post-Task Choice Switch", breaks=seq(-1, 1, 0.2))+
-  coord_cartesian(ylim = c(-0.1, 1)) 
+  coord_cartesian(ylim = c(-0.4, 1.1)) +
+  geom_text(aes(label=dep.count, y=1.05), position=position_dodge(.5))
 
 ```
+
 
 ```{r}
 t.test(e1.ex$Switch.Num~e1.ex$Choice)
 ```
 
 
-## Task Progress by Objects
+
+## how much did condition influence people's strategy
 
 ```{r}
-
+e1.ex$Inertia<-ifelse(e1.ex$Condition==e1.ex$Future.Choice, 1, 0)
 
 ```
 
+```{r}
+graph2<-ddply(e1.ex, c("Choice", "Condition"), function(df)   
+  return(c(dep.avg=mean(df$Inertia), dep.sd=sd(df$Inertia), dep.count=length(df$Inertia), 
+           dep.sem=(sd(df$Inertia))/(sqrt(length(df$Inertia))))))
+# print(graph2)
 
+ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Condition))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_x_discrete()+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", n=2))+
+  scale_y_continuous("Proportion Post-Task Choice Switch", breaks=seq(-1, 1, 0.2))+
+  coord_cartesian(ylim = c(-0.4, 1)) 
 
+t.test(e1.ex$Inertia~e1.ex$Condition)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
 
 
 
@@ -2283,7 +2299,52 @@ tab_model(e8.mod2, e8.mod3, transform=NULL)
 
 ```
 
+#### Whether choice at time = 0 differed across different base groups
 
+```{r}
+eq<-subset(e8, TimeDiff==0)
+
+graph2<-ddply(eq, c("BaseGroup"), function(df)   
+  return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num), 
+           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+
+graph2$BaseGroup<-factor(graph2$BaseGroup) # factorize "Base Group" for plotting
+
+ggplot(graph2, aes(x=BaseGroup, y=dep.avg, colour=BaseGroup))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_line()+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+  geom_hline(yintercept = .5, linetype="dotted")+
+  scale_colour_manual(values=wes_palette("Darjeeling1", 3))+
+  scale_x_discrete("Base Task Time")+
+  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  coord_cartesian(ylim = c(0, 1))+
+  geom_text(aes(label = format(paste0("N = ", dep.count), colour="black"), y = 0.15))
+
+```
+
+
+Regression following up: 
+
+```{r}
+eq.mod<-glm(Choice.Num ~ BaseGroup, family="binomial", data=eq)
+tab_model(eq.mod, transform = NULL)
+```
 #### Regression
 
 
@@ -3220,8 +3281,187 @@ ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Space))+
 
 ```
 
+Regression that examines whether self-reported organization influences choice when task time is expected to be the same across strategies:
+
+```{r}
+eq.sp1<-glm(Choice.Num~Work, family = "binomial", data=Q3.sub)
+eq.sp2<-glm(Choice.Num~Living, family = "binomial", data=Q3.sub)
+eq.sp3<-glm(Choice.Num~Work+Living, family = "binomial", data=Q3.sub)
+
+tab_model(eq.sp1, eq.sp2, eq.sp3, transform = NULL)
+```
+
+-------------------------------------
+
+## Exploratory Analyses
+
+Looking at whether total task time and organiation:search ratio were related to people's strategy preference
+
+## Whether Organization:Search Ratio Predicts Choice
+
+```{r}
+lab$RatioPre<-lab$Time_Org.OrgSub/lab$Time_Org.SearchSub
 
 
+graph2<-ddply(lab, c("Choice", "Study"), function(df)   
+  return(c(dep.avg=mean(df$RatioPre, na.rm=T), dep.sd=sd(df$RatioPre, na.rm=T), dep.count=length(df$RatioPre), 
+           dep.sem=(sd(df$RatioPre, na.rm=T))/(sqrt(length(df$RatioPre))))))
+# print(graph2)
+
+ggplot(graph2, aes(x=Study, y=dep.avg, colour=Choice))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", n=2))+
+  scale_x_discrete("Pre-Task Choice")
+  scale_y_continuous("Proportion Post-Task Choice Switch", breaks=seq(-1, 10, 2))
+  # coord_cartesian(ylim = c(-, 1)) 
+
+```
+
+
+```{r}
+ggplot(lab, aes(x=Study, y=RatioPre, fill=Choice)) +
+  geom_split_violin(trim=FALSE)+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_fill_manual(values=wes_palette("IsleofDogs1", n = 3, type="discrete"))+
+  # scale_x_discrete("", labels="SONA Samples")+
+  scale_y_continuous("Organization:Search Ratio ", breaks=seq(-10, 10, 1))+
+  geom_hline(yintercept = c(-2, 10), linetype="dotted")
+
+```
+
+Looking at whether absolute times differed
+
+```{r}
+
+comp<-melt(lab[c(2,5,11,12)], id=c(1,2), variable.name = "Component", value.name = "Time")
+comp$Component<-recode(comp$Component, "'Time_Org.OrgSub'='Organization';'Time_Org.SearchSub'='Search' ")
+
+graph2<-ddply(comp, c("Choice", "Component"), function(df)   
+  return(c(dep.avg=mean(df$Time, na.rm=T), dep.sd=sd(df$Time, na.rm=T), dep.count=length(df$Time), 
+           dep.sem=(sd(df$Time, na.rm=T))/(sqrt(length(df$Time))))))
+# print(graph2)
+
+ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Component))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_colour_manual(values=wes_palette("IsleofDogs1", 2))+
+  scale_x_discrete("Pre-Task Choice")+
+  scale_y_continuous("Proportion Post-Task Choice Switch", breaks=seq(-10, 30, 5))+
+  coord_cartesian(ylim = c(0, 20))
+```
+
+```{r}
+graph2<-ddply(lab, c("Choice"), function(df)   
+  return(c(dep.avg=mean(df$Time_SearchTotal, na.rm=T), dep.sd=sd(df$Time_SearchTotal, na.rm=T), 
+           dep.count=length(df$Time_SearchTotal), 
+           dep.sem=(sd(df$Time_SearchTotal, na.rm=T))/(sqrt(length(df$Time_SearchTotal))))))
+# print(graph2)
+
+ggplot(graph2, aes(x=Choice, y=dep.avg))+ 
+  geom_point(size=4, shape=17, position = position_dodge(0.5))+
+  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
+                width=0.05, position = position_dodge(0.5))+
+  theme(
+    panel.background= element_rect(fill=NA), # transparent panel
+    plot.background = element_rect(fill=NA, colour=NA), #transparent background
+    panel.grid=element_blank(), # remove panel grid
+    axis.ticks.x=element_blank(), # remove tick marks on x-axis
+    axis.ticks=element_line(colour="#A18882"), # change colour of tick marks
+    panel.border = element_rect(fill="transparent", colour="#A18882"), # change panel border colour
+    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+    axis.text = element_text(color="#432620"),
+    legend.key = element_rect(fill = "transparent", colour = "transparent")
+    # ,legend.position="none"
+  )+
+  scale_x_discrete("Pre-Task Choice")+
+  scale_y_continuous("Estimated Time for Direct-Search Strategy", breaks=seq(-10, 30, 5))
+```
+
+```{r}
+t.test(lab$Time_OrgTotal~lab$Choice, paired=F)
+t.test(lab$Time_SearchTotal~lab$Choice, paired=F)
+```
+
+```{r}
+rms<-read.csv("C:/Users/MonaZhu/Dropbox/CANB Lab/Lego & Search/RMS.csv", stringsAsFactors = F)
+rms[c(2:ncol(rms))] <- lapply(rms, function(x) as.numeric(as.character(x)))
+rms$assessment<-base::rowMeans(rms[c(3, 7, 8, 10, 11, 12, 14, 16, 17, 19, 22, 25)], na.rm=T)
+rms$locomotion<-base::rowMeans(rms[c(2, 4, 5, 6, 9, 13, 15, 18, 20, 21, 23, 24)], na.rm=T)
+
+mod1<-lm(Workspace~assessment, data = rms)
+mod2<-lm(Workspace~locomotion, data = rms)
+mod3<-lm(Workspace~assessment+locomotion, data = rms)
+# mod4<-lm(Workspace~assessment*locomotion, data = rms)
+
+tab_model(mod1, mod2, mod3)
+
+
+mod5<-lm(Bedroom~assessment, data = rms)
+mod6<-lm(Bedroom~locomotion, data = rms)
+mod7<-lm(Bedroom~assessment+locomotion, data = rms)
+# mod4<-lm(Bedroom~assessment*locomotion, data = rms)
+
+tab_model(mod5, mod6, mod7)
+
+```
+
+
+```{r}
+ggplot(rms, aes(assessment, Workspace))+
+  geom_point()+
+  geom_smooth(method=loess)
+
+```
+
+```{r}
+ggplot(rms, aes(assessment, Bedroom))+
+  geom_point()+
+  geom_smooth(method=loess)
+
+```
+
+```{r}
 
 
 
