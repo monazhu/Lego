@@ -1,7 +1,7 @@
 ---
-title: "Lego Manuscript (e2-3)"
+title: "Lego Manuscript (E1-3)"
 author: Mona Zhu
-date: Updated Oct 18, 2019
+date: Updated Feb 14, 2019
 output: 
   html_document:
     fig_width: 8
@@ -40,66 +40,81 @@ library(lme4)
 library(sjmisc)
 ```
 
+## Data Cleaning
 
+Loading data frame and recoding variables
 
 ```{r}
 # setwd("C:/Users/monaj/Dropbox/CANB Lab/Lego & Search/Online Lego Study")
-df<-read.csv("Lego_Combined In-Lab&Turk&SONA_9Dec2019.csv")
+df<-read.csv("Lego_In-Lab Experiments_13Feb2020.csv")
 
-df$StudyType<-factor(ifelse(df$Study=="Sona E1"|df$Study=="Sona E2", "Sona", 
-                     ifelse(df$Study=="Mturk E1"|df$Study=="Mturk E2"|df$Study=="Mturk E3", "Mturk", "In Lab")))
-
-# Pre-Task Choice
+# Recoding Pre-Task Choice
 df$Choice<-factor(recode(as.character(df$Choice), "''=NA; 'Categorize then search'='Organization'; 
                   'Search without categorizing'='Search Only'"))
 df$Choice<-factor(df$Choice, levels(df$Choice)[c(2,1)])
 df$Choice.Num<-ifelse(df$Choice=="Organization", 1, 0)
 
-# Post-Task Choice (in-lab only)
+# Recoding Post-Task Choice 
 df$Future.Choice<-factor(recode(as.character(df$Future.Choice), "''=NA; 
                                 'Categorize then search'='Organization'; 
                                 'Search without categorizing'='Search Only'"))
 df$Future.Choice<-factor(df$Future.Choice, levels(df$Future.Choice)[c(2,1)])
 df$FutureChoice.Num<-ifelse(df$Future.Choice=="Organization", 1, 0)
 
-# Assigned Condition (in-lab only)
+# Recoding Assigned Condition 
 df$Condition<-factor(recode(as.character(df$Condition), "''=NA; 'Categorize then search'='Organization';
                      'Search without categorizing'='Search Only'"))
 df$Condition<-factor(df$Condition, levels(df$Condition)[c(2,1)])
+```
 
+Variable Information: 
+
+* **Choice** Pre-task strategy preference
+* **Condition** Assigned strategy
+* **Time_OrgTotal** Estimated task time pre-task using the organization strategy
+* **Time_Org.OrgSub** Estimated task time spent on the organization phase pre-task using the organization strategy
+* **Time_Org.SearchSub** Estimated task time spent on the organization phase pre-task using the organization strategy
+* **Time_SearchTotal** Estimated task time pre-task using the Search-Only strategy
+* **Org.Eff** Estimated task effort pre-task using the organization strategy
+* **Search.Eff** Estimated task effort pre-task using the search-only strategy
+* **ActualTime_Org** Objective time spent in the organization phase of the task (0 if assigned to use a search-onlyl strategy)
+* **ActualTime_Search** Objective time spent in the search phase of the task 
+* **ActualTime_Total** Total objective time spent performing the task 
+* **PostTime_OrgTotal** Estimated task time post-task using the organization strategy
+* **PostTime_Org.OrgSub** Estimated task time spent on the organization phase post-task using the organization strategy
+* **PostTime_Org.SearchSub** Estimated task time spent on the organization phase post-task using the organization strategy
+* **PostTime_SearchTotal** Estimated task time post-task using the Search-Only strategy
+* **PostOrg.Eff** Estimated task effort post-task using the organization strategy
+* **PostSearch.Eff** Estimated task effort post-task using the search-only strategy
+* **Future.Choice** Post-task strategy preference
+* **Exclusion** Whether individuals were excluded from the task
+* **Reason** Reason for data exclusion
+
+
+Additional variales were also calculated: 
+
+```{r Additional variables calculated}
 # Recoding other variables
 df$PreTimeDiff<-as.numeric(df$Time_SearchTotal-df$Time_OrgTotal)
 df$PostTimeDiff<-as.numeric(df$PostTime_SearchTotal-df$PostTime_OrgTotal)
 df$PreEffDiff<-as.numeric(df$Search.Eff-df$Org.Eff)
 df$PostEffDiff<-as.numeric(df$PostSearch.Eff-df$PostOrg.Eff)
-df$FunDiff<-as.numeric(df$Search.Fun-df$Org.Fun)
-df$Switch<-ifelse(is.na(df$Future.Choice), NA, 
-                  ifelse(df$Choice==df$Future.Choice, "Same", "Switched"))
-df$Switch.Num<-ifelse(df$Switch=="Same", 0, 1)
 
-# time<-df[complete.cases(df$Time_Org.min), ] # data set where time estimation was measured
-# eff<-df[complete.cases(df$Org.Eff), ] # dataset
-# fun<-df[complete.cases(df$Org.Fun), ]
-# post<-df[!is.na(df$Future.Choice),]
 ```
 
-
-**0 = Search without categorizing** 
-
-**1 = Categorize then search**
+* **Choice.Num** and **FutureChoice.Num** are the numerically coded versions of **Choice** and **Future.Choice** such that **0 = Search without categorizing** and **1 = Categorize then search**
+* **PreTimeDiff** and **PostTimeDiff** are relative task time difference scores based on estimates provide pre- and post-task respectively
+* **PreEffDiff** and **PostEffDiff** are relative task effort difference scores based on estimates provide pre- and post-task respectively
 
 **NOTE:** Difference scores calculated as the *Search* condition minius *Organization* condition. Positive scores mean that organization is perceived to take less time than search. Proportion scores are calculated as *(Search-Organization)/Organization*
 
-# In-Lab Experiments
+
+Creating subset variables: 
 
 ```{r}
-lab<-subset(df, StudyType=="In Lab")
+lab<-df
 lab.ex<-subset(lab, !(Exclusion=="Exclude"))
-```
 
-
-
-```{r}
 e1<-subset(df, Study=="In Lab E1")
 e1.ex<-subset(e1, Exclusion!="Exclude")
 
@@ -115,9 +130,14 @@ e3.ex<-subset(e3, Exclusion!="Exclude")
 
 ### Demographics
 
+Sex:
 
 ```{r}
 table(e1$Sex)
+```
+
+Mean age and SD respectively: 
+```{r}
 mean(e1$Age)
 sd(e1$Age)
 
@@ -126,266 +146,282 @@ sd(e1$Age)
 
 ### Objective Task Time
 
+Welch's t-test with group means: 
 ```{r}
 # t-test
 t.test(e1.ex$ActualTime_Total~e1.ex$Condition, paired=F)
+```
 
+SD for the organization and search-only strategy respectively
+```{r}
 # sd
 sd(e1.ex[e1.ex$Condition=="Organization",]$ActualTime_Total)
 sd(e1.ex[e1.ex$Condition=="Search Only",]$ActualTime_Total)
+```
 
-# cohen's d
+Hedge's g for the effect size
+```{r}
+# hedge's g
 effsize::cohen.d(e1.ex$ActualTime_Total~e1.ex$Condition, paired=F, hedges.correction=T)
+```
+
+Average time (and SD) individuals spent in the organization phase while performing the search task in-lab:
+```{r}
+# Organization Phase
+mean(e1.ex[e1.ex$Condition=="Organization",]$ActualTime_Org)
+sd(e1.ex[e1.ex$Condition=="Organization",]$ActualTime_Org)
+
 ```
 
 
 ### Pre-Task Time Estimate
 
+Paired-samples t-test: 
 ```{r}
 t.test(e1$Time_OrgTotal, e1$Time_SearchTotal, paired=T)
+```
 
+Estimated mean time and SD for the organization strategy:
+```{r}
 mean(e1$Time_OrgTotal)
 sd(e1$Time_OrgTotal)
+```
 
+Estimated mean time and SD for the search-only strategy:
+```{r}
 mean(e1$Time_SearchTotal)
 sd(e1$Time_SearchTotal)
+```
 
+Hedge's g for the effect size
+```{r}
 effsize::cohen.d(e1$Time_OrgTotal, e1$Time_SearchTotal, paired=T, hedges.correction=T)
+```
+
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+```{r}
+# Organization Phase
+mean(e1$Time_Org.OrgSub)
+sd(e1$Time_Org.OrgSub)
+```
+
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
+
+```{r}
+e1$time.compare<-ifelse(e1$Time_OrgTotal>e1$Time_SearchTotal, "Search Faster", 
+                     ifelse(e1$Time_OrgTotal<e1$Time_SearchTotal, "Organize Faster", "Same"))
+table(e1$time.compare)
 
 ```
 
 
 ### Pre-Task Time Estimate (with only final n's)
 
+**NOTE:** The following are the same analyses as previously reported, except we used the same participants as in the post-task analysis (i.e., removing the 12 subjects who did not or could not complete the study properly)
+
+Paired-samples t-test: 
 ```{r}
 t.test(e1.ex$Time_OrgTotal, e1.ex$Time_SearchTotal, paired=T)
+```
 
+Estimated mean time and SD for the organization & search-only strategies respectively
+```{r}
 mean(e1.ex$Time_OrgTotal)
 sd(e1.ex$Time_OrgTotal)
 
 mean(e1.ex$Time_SearchTotal)
 sd(e1.ex$Time_SearchTotal)
+```
 
+Hedge's g
+```{r}
 effsize::cohen.d(e1.ex$Time_OrgTotal, e1.ex$Time_SearchTotal, paired=T, hedges.correction=T)
+
+```
+
+Estimated mean time and SD in the organization phase if using an organization-based strategy:
+```{r}
+mean(e1.ex$Time_Org.OrgSub)
+sd(e1.ex$Time_Org.OrgSub)
 
 ```
 
 ### Post-Task Time Estimate
 
+Paired-samples t-test: 
 ```{r}
 t.test(e1.ex$PostTime_OrgTotal, e1.ex$PostTime_SearchTotal, paired=T)
+```
 
+Estimated mean time and SD for the organization strategy:
+
+```{r}
 mean(e1.ex$PostTime_OrgTotal)
 sd(e1.ex$PostTime_OrgTotal)
+```
 
+Estimated mean time and SD for the search-only strategy:
+
+```{r}
 mean(e1.ex$PostTime_SearchTotal)
 sd(e1.ex$PostTime_SearchTotal)
 
+```
+
+Hedge's g
+```{r}
 effsize::cohen.d(e1.ex$PostTime_OrgTotal, e1.ex$PostTime_SearchTotal, paired=T, hedges.correction=T)
 
 ```
 
-
-<!-- ### Pre- & Post-Task Time Estimates Predicting Choice -->
-<!-- ```{r} -->
-<!-- e1.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e1) -->
-<!-- e1.pre2<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e1.ex) -->
-<!-- e1.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=e1.ex) -->
-
-<!-- tab_model(e1.pre, e1.pre2, e1.post, transform=NULL, show.stat = T, digits.p=2) -->
-<!-- ``` -->
-
-### Mixed Model - Task Choice (Time Estimate Predicting Pre/Post Task)
-
-```{r setting up data frame for merging}
-pre<-melt(e1[,names (e1) %in% c("ID", "Choice.Num", "Condition", "PreTimeDiff")], 
-          id=c("ID", "Condition","PreTimeDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-pre$PrePost<-"Pre-Task"
-names(pre)[3]<-"TimeDiff"
-
-post<-melt(e1.ex[,names (e1.ex) %in% c("ID", "FutureChoice.Num", "Condition", "PostTimeDiff")], 
-           id=c("ID",  "Condition", "PostTimeDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-post$PrePost<-"Post-Task"
-names(post)[3]<-"TimeDiff"
-
-time<-rbind(pre, post)
-time$PrePost<-factor(time$PrePost)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-
-```
-
+Estimated mean time and SD that participants expect to spend in the organization phase, if they were to use the organization strategy post-task: 
 
 ```{r}
-timemod1<-glmer(Choice.Num~PrePost+TimeDiff+(1|ID), family="binomial", data=time)
-timemod3<-glmer(Choice.Num~PrePost*TimeDiff+(1|ID), family="binomial", data=time)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-timemod2<-glmer(Choice.Num~PrePost+TimeDiff+(1|ID), family="binomial", data=time)
-
-tab_model(timemod1, timemod2, timemod3, transform = NULL, show.stat = T, digits.p=2)
+mean(e1.ex$PostTime_Org.OrgSub)
+sd(e1.ex$PostTime_Org.OrgSub)
 ```
 
-
-
-<!-- ### Task Switch -->
-
-<!-- ```{r} -->
-<!-- switch<-glm(Switch.Num~Choice*Condition, family = "binomial", data=lab.ex) -->
-<!-- switch2<-glm(FutureChoice.Num~Choice, family = "binomial", data=e2.ex) -->
-
-<!-- xtabs(~Choice+Condition+Switch, data=lab.ex) -->
-
-
-
-<!-- ezANOVA(e1.ex, wid=.(ID), dv=.(Switch.Num), between=.(Choice, Condition), detailed=T) -->
-
-<!-- tab_model(switch, transform = NULL, show.stat = T) -->
-
-<!-- ``` -->
-
-## E1 Figures
-
-### Figure 1 (Objective Time and Time Estimates)
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy post-task: 
 
 ```{r}
-# Pre-Task Estimates
-time.pre<-melt(e1[,names(e1) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "Time_OrgTotal", "Time_SearchTotal")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time")
-time.pre$PrePostTask<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="Time_SearchTotal",
-                                "Pre-Task Estimation", "Post-Task Estimation"))
-time.pre$Strategy<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="PostTime_OrgTotal",
-                                "Organization", "Search Only"))
-# Post-Task Estimates
-time.post<-melt(e1.ex[,names(e1.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "PostTime_OrgTotal", "PostTime_SearchTotal")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time")
-time.post$PrePostTask<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="Time_SearchTotal",
-                                "Pre-Task Estimation", "Post-Task Estimation"))
-time.post$Strategy<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="PostTime_OrgTotal",
-                                "Organization", "Search Only"))
-# Objective Task Time
-time.act<-melt(e1.ex[,names(e1.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "ActualTime_Total")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time")
-time.act$PrePostTask<-factor("Objective Task Completion Time")
-time.act$Strategy<-factor(time.act$Condition)
-
-time.comb<-rbind(time.pre, time.post, time.act)
-time.comb$PrePostTask<-factor(time.comb$PrePostTask, levels(time.comb$PrePostTask)[c(3,1,2)])
-time.comb$Strategy<-factor(time.comb$Strategy, levels(time.comb$Strategy)[c(2,1)])
+e1.ex$time.compare<-ifelse(e1.ex$PostTime_OrgTotal>e1.ex$PostTime_SearchTotal, "Search Faster", 
+                     ifelse(e1.ex$PostTime_OrgTotal<e1.ex$PostTime_SearchTotal, "Organize Faster", "Same"))
+table(e1.ex$time.compare)
 
 ```
 
+
+### Pre- & Post-Task Choices
+
+Pre-task preference: 
+```{r}
+chisq.test(table(e1$Choice))
+39/(39+14)
+```
+
+Post-task preference: 
+```{r}
+chisq.test(table(e1.ex$Future.Choice))
+28/(28+13)
+```
+
+### Pre- & Post-Task Time Estimates Predicting Choice
+
+The results displayed are
+
+1. pre-task preference as a function of relative task time using the full data set
+2. pre-task preference as a function of relative task time with subjects removed who did not or could not complete the search task properly (i.e., same subset as for the post-task analyses)
+3. post-task preference as a function of relative task time, using the subsetted data
 
 ```{r}
-graph2<-ddply(time.comb, c("PrePostTask", "Strategy"), function(df)   
-  return(c(dep.avg=mean(df$Time, na.rm=T), dep.sd=sd(df$Time, na.rm=T),
-           dep.count=length(df$Time), 
-           dep.sem=(sd(df$Time))/(sqrt(length(df$Time))))))
+e1.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e1)
+e1.pre2<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e1.ex) # with 12 participants removed 
+e1.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=e1.ex)
 
-# png('E1 Time Estimate.png', bg="transparent", width = 6, height = 4, units = 'in', res = 300)
-
-ggplot(graph2, aes(x=Strategy, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  facet_grid(.~PrePostTask)+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    # ,legend.position="none"
-  )+
-  scale_y_continuous("Time", breaks=seq(0, 50, 5), limits=c(0, 40))+
-  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
-  # geom_hline(yintercept = .5, linetype="dotted")+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  # scale_x_discrete("Experiment")+
-  coord_cartesian(ylim = c(15, 40))
+tab_model(e1.pre, e1.pre2, e1.post, transform=NULL, show.stat = T, digits.p=2)
 
 ```
 
 
 
+<!-- ## E1 Figures -->
 
-
-### Figure 2 (Choice Pre & Post-Task)
-
-```{r}
-pre.choice<-melt(lab[-c(33)], id=c(1:31, 33:38)) # create a long data frame of just pre-task choice
-post.choice<-melt(lab.ex[-c(32)], id=c(1:31, 33:38)) # create a long data frame of just post-task choice
-lab.choice<-rbind(pre.choice, post.choice) # binding the two dataframes together
-names(lab.choice)[c(38,39)]<-c("PrePostChoice", "Choice.Num")
-lab.choice$PrePostChoice<-factor(recode(lab.choice$PrePostChoice, "'Choice.Num'='Pre-Task Choice';
-                                 'FutureChoice.Num'='Post-Task Choice'"))
-lab.choice$PrePostChoice<-factor(lab.choice$PrePostChoice, levels(lab.choice$PrePostChoice)[c(2,1)])
-```
-
-
-```{r}
-graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E1",], c("PrePostChoice"), function(df)   
-  return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T),
-           dep.count=length(df$Choice.Num), 
-           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
-
-ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    ,legend.position="none"
-  )+
-  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
-  geom_hline(yintercept = .5, linetype="dotted")+
-  # geom_vline(xintercept = 1.5, linetype="solid", size = 1)+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  scale_x_discrete("")+
-  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
-  coord_cartesian(ylim = c(0, 1)) 
-
-```
-
-
-
+<!-- ### Figure 1 (Objective Time and Time Estimates) -->
 
 <!-- ```{r} -->
-<!-- e1.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=e1.ex) -->
-<!-- ``` -->
+<!-- # Pre-Task Estimates -->
+<!-- time.pre<-melt(e1[,names(e1) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "Time_OrgTotal", "Time_SearchTotal")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time") -->
+<!-- time.pre$PrePostTask<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="Time_SearchTotal", -->
+<!--                                 "Pre-Task Estimation", "Post-Task Estimation")) -->
+<!-- time.pre$Strategy<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="PostTime_OrgTotal", -->
+<!--                                 "Organization", "Search Only")) -->
+<!-- # Post-Task Estimates -->
+<!-- time.post<-melt(e1.ex[,names(e1.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "PostTime_OrgTotal", "PostTime_SearchTotal")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time") -->
+<!-- time.post$PrePostTask<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="Time_SearchTotal", -->
+<!--                                 "Pre-Task Estimation", "Post-Task Estimation")) -->
+<!-- time.post$Strategy<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="PostTime_OrgTotal", -->
+<!--                                 "Organization", "Search Only")) -->
+<!-- # Objective Task Time -->
+<!-- time.act<-melt(e1.ex[,names(e1.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "ActualTime_Total")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time") -->
+<!-- time.act$PrePostTask<-factor("Objective Task Completion Time") -->
+<!-- time.act$Strategy<-factor(time.act$Condition) -->
 
-<!-- ```{r} -->
-<!-- tab_model(e1.pre, e1.post, transform=NULL, show.stat = T, digits.p=2) -->
+<!-- time.comb<-rbind(time.pre, time.post, time.act) -->
+<!-- time.comb$PrePostTask<-factor(time.comb$PrePostTask, levels(time.comb$PrePostTask)[c(3,1,2)]) -->
+<!-- time.comb$Strategy<-factor(time.comb$Strategy, levels(time.comb$Strategy)[c(2,1)]) -->
+
 <!-- ``` -->
 
 
-<!-- ## Other Graphs -->
+<!-- ```{r} -->
+<!-- graph2<-ddply(time.comb, c("PrePostTask", "Strategy"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$Time, na.rm=T), dep.sd=sd(df$Time, na.rm=T), -->
+<!--            dep.count=length(df$Time),  -->
+<!--            dep.sem=(sd(df$Time))/(sqrt(length(df$Time)))))) -->
+
+<!-- png(file = "Lego_Figure 1_TimeE1.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(graph2, aes(x=Strategy, y=dep.avg))+  -->
+<!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
+<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
+<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
+<!--                 width=0, position = position_dodge(0.5))+ -->
+<!--   facet_grid(.~PrePostTask)+ -->
+<!--   theme( -->
+<!--     panel.background= element_rect(fill=NA), # transparent panel -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
+<!--     panel.grid=element_blank(), # remove panel grid -->
+<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
+<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
+<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
+<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
+<!--     axis.text = element_text(color="#432620"), -->
+<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
+<!--     # ,legend.position="none" -->
+<!--   )+ -->
+<!--   scale_y_continuous("Time", breaks=seq(0, 50, 5), limits=c(0, 40))+ -->
+<!--   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4")) -->
+<!--   # geom_hline(yintercept = .5, linetype="dotted")+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   # scale_x_discrete("Experiment")+ -->
+<!--   coord_cartesian(ylim = c(15, 40)) -->
+
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+
+
+
+<!-- ### Figure 2 (Choice Pre & Post-Task) -->
 
 <!-- ```{r} -->
-<!-- graph2<-ddply(lab.ex, c("Choice", "Condition", "Study"), function(df)    -->
-<!--   return(c(dep.avg=mean(df$FutureChoice.Num, na.rm=T), dep.sd=sd(df$FutureChoice.Num, na.rm=T), -->
-<!--            dep.count=length(df$FutureChoice.Num),  -->
-<!--            dep.sem=(sd(df$FutureChoice.Num))/(sqrt(length(df$FutureChoice.Num)))))) -->
+<!-- pre.choice<-melt(lab[-c(33)], id=c(1:31, 33:38)) # create a long data frame of just pre-task choice -->
+<!-- post.choice<-melt(lab.ex[-c(32)], id=c(1:31, 33:38)) # create a long data frame of just post-task choice -->
+<!-- lab.choice<-rbind(pre.choice, post.choice) # binding the two dataframes together -->
+<!-- names(lab.choice)[c(38,39)]<-c("PrePostChoice", "Choice.Num") -->
+<!-- lab.choice$PrePostChoice<-factor(recode(lab.choice$PrePostChoice, "'Choice.Num'='Pre-Task Choice'; -->
+<!--                                  'FutureChoice.Num'='Post-Task Choice'")) -->
+<!-- lab.choice$PrePostChoice<-factor(lab.choice$PrePostChoice, levels(lab.choice$PrePostChoice)[c(2,1)]) -->
+<!-- ``` -->
 
-<!-- ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Condition))+  -->
-<!--   facet_grid(.~Study)+ -->
+
+<!-- ```{r} -->
+<!-- graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E1",], c("PrePostChoice"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), -->
+<!--            dep.count=length(df$Choice.Num),  -->
+<!--            dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num)))))) -->
+
+<!-- png(file = "Lego_Figure 2_PreferenceE1.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+  -->
 <!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
 <!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
 <!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
@@ -400,16 +436,16 @@ ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+
 <!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
 <!--     axis.text = element_text(color="#432620"), -->
 <!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
-<!--     # ,legend.position="none" -->
+<!--     ,legend.position="none" -->
 <!--   )+ -->
 <!--   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4")) -->
 <!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
 <!--   # geom_vline(xintercept = 1.5, linetype="solid", size = 1)+ -->
-<!--   scale_colour_manual("Assigned\nStrategy", values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
-<!--   scale_x_discrete("Pre-Task Choice")+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   scale_x_discrete("")+ -->
 <!--   scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+ -->
-<!--   coord_cartesian(ylim = c(0, 1)) + -->
-<!--   geom_text(aes(label=dep.count, y=0.2), position=position_dodge(.5)) -->
+<!--   coord_cartesian(ylim = c(0, 1))  -->
+
 
 <!-- ``` -->
 
@@ -442,13 +478,18 @@ ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+
 
 
 
-# Experiment 2
+
+# Experiment 2 Only
 
 ### Demographics
 
-
+Sex: 
 ```{r}
 table(e2$Sex)
+```
+
+Mean age and SD:
+```{r}
 mean(e2$Age)
 sd(e2$Age)
 ```
@@ -456,192 +497,178 @@ sd(e2$Age)
 
 ### Objective Task Time
 
+Welch t-test and group means:
 ```{r}
-# t-test
 t.test(e2.ex$ActualTime_Total~e2.ex$Condition, paired=F)
+```
 
-# # BF t-test
-# 1/ttestBF(x=e2.ex[e2.ex$Condition=="Search Only",]$ActualTime_Total,
-#         y=e2.ex[e2.ex$Condition=="Organization",]$ActualTime_Total)
-
-# sd
+SD for the organization and search-only assigned strategies respectively:
+```{r}
 sd(e2.ex[e2.ex$Condition=="Organization",]$ActualTime_Total)
 sd(e2.ex[e2.ex$Condition=="Search Only",]$ActualTime_Total)
+```
 
-# cohen's d
+Hedge's g
+```{r}
 effsize::cohen.d(e2.ex$ActualTime_Total~e2.ex$Condition, paired=F, hedges.correction=T)
+```
+
+Average time (and SD) individuals spent in the organization phase while performing the search task in-lab:
+
+```{r}
+mean(e2.ex[e2.ex$Condition=="Organization",]$ActualTime_Org)
+sd(e2.ex[e2.ex$Condition=="Organization",]$ActualTime_Org)
+
 ```
 
 
 ### Pre-Task Time Estimate
 
+Paired-samples t-test: 
+
 ```{r}
 t.test(e2$Time_OrgTotal, e2$Time_SearchTotal, paired=T)
+```
 
+Estimated mean time and SD for the organization and search-only strategies respectively:
+```{r}
 mean(e2$Time_OrgTotal)
 sd(e2$Time_OrgTotal)
 
 mean(e2$Time_SearchTotal)
 sd(e2$Time_SearchTotal)
+```
 
+Hedge's g
+```{r}
 effsize::cohen.d(e2$Time_OrgTotal, e2$Time_SearchTotal, paired=T, hedges.correction=T)
+```
+
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+```{r}
+mean(e2$Time_Org.OrgSub)
+sd(e2$Time_Org.OrgSub)
 
 ```
 
 
-### Pre-Task Time Estimate (final n's)
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
 
 ```{r}
-t.test(e2.ex$Time_OrgTotal, e2.ex$Time_SearchTotal, paired=T)
+e2$time.compare<-ifelse(e2$Time_OrgTotal>e2$Time_SearchTotal, "Search Faster", 
+                     ifelse(e2$Time_OrgTotal<e2$Time_SearchTotal, "Organize Faster", "Same"))
+table(e2$time.compare)
+```
 
+### Pre-Task Time Estimate (final n's)
+
+As with E1, the same analyses as above except with the same participants as in the post-task analyses:
+
+Paired-samples t-test:
+```{r}
+t.test(e2.ex$Time_OrgTotal, e2.ex$Time_SearchTotal, paired=T)
+```
+
+Estimated mean time and SD for the organization & search-only strategies respectively
+```{r}
 mean(e2.ex$Time_OrgTotal)
 sd(e2.ex$Time_OrgTotal)
 
 mean(e2.ex$Time_SearchTotal)
 sd(e2.ex$Time_SearchTotal)
+```
 
+Hedge's g
+```{R}
 effsize::cohen.d(e2.ex$Time_OrgTotal, e2.ex$Time_SearchTotal, paired=T, hedges.correction=T)
+```
+
+Estimated mean time and SD for the organization phase if using an organization-based strategy:
+```{r}
+mean(e2.ex$Time_Org.OrgSub)
+sd(e2.ex$Time_Org.OrgSub)
 
 ```
 
 
 ### Post-Task Time Estimate
 
+Paired-samples t-test: 
+
 ```{r}
 t.test(e2.ex$PostTime_OrgTotal, e2.ex$PostTime_SearchTotal, paired=T)
+```
 
+Estimated mean time and SD for the organization & search-only strategies respectively:
+```{r}
 mean(e2.ex$PostTime_OrgTotal)
 sd(e2.ex$PostTime_OrgTotal)
 
 mean(e2.ex$PostTime_SearchTotal)
 sd(e2.ex$PostTime_SearchTotal)
+```
 
+Hedge's g
+```{r}
 effsize::cohen.d(e2.ex$PostTime_OrgTotal, e2.ex$PostTime_SearchTotal, paired=T, hedges.correction=T)
-
 ```
 
-
-
-
-<!-- ### Mixed Model (Time Estimates) -->
-
-<!-- ```{r} -->
-<!-- pretime<-melt(e2[,names(e2) %in% c("ID","Time_OrgTotal", "Time_SearchTotal")], id=c(1), -->
-<!--               variable.name = "Strategy", value.name = "Time") -->
-<!-- pretime$PrePost<-factor("Pre-Task") -->
-
-<!-- posttime<-melt(e2.ex[,names(e2.ex) %in% c("ID","PostTime_OrgTotal", "PostTime_SearchTotal")], id=c(1), -->
-<!--               variable.name = "Strategy", value.name = "Time") -->
-<!-- posttime$PrePost<-factor("Post-Task") -->
-
-<!-- est<-rbind(pretime, posttime) -->
-<!-- # est$PrePost<-factor(est$PrePost, levels(est$PrePost)[c(2,1)]) -->
-<!-- est$Strategy<-factor(recode(est$Strategy, "'Time_OrgTotal'='Organization'; 'Time_SearchTotal'='Search Only'; -->
-<!--                      'PostTime_OrgTotal'='Organization';'PostTime_SearchTotal'='Search Only'")) -->
-<!-- est$Strategy<-factor(est$Strategy, levels(est$Strategy)[c(2,1)]) -->
-<!-- ``` -->
-
-
-
-<!-- ```{r} -->
-<!-- time1<-lmer(Time~PrePost+Strategy+(1|ID), data=est, contrasts = list(PrePost="contr.sum", -->
-<!--                                                                      Strategy="contr.sum")) -->
-<!-- time2<-lmer(Time~PrePost*Strategy+(1|ID), data=est, contrasts = list(PrePost="contr.sum", -->
-<!--                                                                      Strategy="contr.sum")) -->
-
-<!-- tab_model(time1, time2, transform = NULL, show.stat = T) -->
-
-<!-- ``` -->
-
-
-
-<!-- ### Pre- & Post-Task Time Estimates Predicting Choice -->
-<!-- ```{r} -->
-<!-- e2.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e2) -->
-<!-- e2.pre2<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e2.ex) -->
-<!-- e2.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=e2.ex) -->
-
-<!-- tab_model(e2.pre, e2.post, transform=NULL, show.stat = T, digits.p=2) -->
-<!-- ``` -->
-
-
-
-### Mixed Model (Time Estimate Predicting Pre/Post Task)
+Estimated mean time and SD (post-task) for the organization phase if using an organization-based strategy:
 
 ```{r}
-pre<-melt(e2[,names (e2) %in% c("ID", "Choice.Num", "Condition", "PreTimeDiff")], 
-          id=c("ID", "Condition","PreTimeDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-pre$PrePost<-"Pre-Task"
-names(pre)[3]<-"TimeDiff"
-
-post<-melt(e2.ex[,names (e2.ex) %in% c("ID", "FutureChoice.Num", "Condition", "PostTimeDiff")], 
-           id=c("ID",  "Condition", "PostTimeDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-post$PrePost<-"Post-Task"
-names(post)[3]<-"TimeDiff"
-
-time<-rbind(pre, post)
-time$PrePost<-factor(time$PrePost)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
+mean(e2.ex$PostTime_Org.OrgSub)
+sd(e2.ex$PostTime_Org.OrgSub)
 
 ```
 
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy post-task: 
+```{r}
+e2.ex$time.compare<-ifelse(e2.ex$PostTime_OrgTotal>e2.ex$PostTime_SearchTotal, "Search Faster", 
+                     ifelse(e2.ex$PostTime_OrgTotal<e2.ex$PostTime_SearchTotal, "Organize Faster", "Same"))
+table(e2.ex$time.compare)
+
+```
+
+### Pre- & Post-Task Choices
+
+
+Pre-task preference: 
+```{r}
+chisq.test(table(e2$Choice))
+35/(35+15)
+```
+
+Post-task preference: 
+```{r}
+chisq.test(table(e2.ex$Future.Choice))
+34/(34+8)
+```
+
+### Pre- & Post-Task Time Estimates Predicting Choice
+
+The results displayed are
+
+1. pre-task preference as a function of relative task time using the full data set
+2. pre-task preference as a function of relative task time using the same subsetted data as in the post-task model
+3. post-task preference as a function of relative task time, using the subsetted data
 
 ```{r}
-timemod1<-glmer(Choice.Num~PrePost+TimeDiff+(1|ID), family="binomial", data=time)
-timemod3<-glmer(Choice.Num~PrePost*TimeDiff+(1|ID), family="binomial", data=time)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-timemod2<-glmer(Choice.Num~PrePost+TimeDiff+(1|ID), family="binomial", data=time)
+e2.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e2)
+e2.pre2<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=e2.ex)
+e2.post<-glm(FutureChoice.Num ~ PostTimeDiff, family="binomial", data=e2.ex)
 
-tab_model(timemod1, timemod2, timemod3, transform = NULL, show.stat = T)
-
+tab_model(e2.pre, e2.pre2, e2.post, transform=NULL, show.stat = T, digits.p=2)
 ```
-
-
-
-
-### Mixed Model (with only subjets from final n)
-
-```{r}
-pre<-melt(e2.ex[,names (e2.ex) %in% c("ID", "Choice.Num", "Condition", "PreTimeDiff")], 
-          id=c("ID", "Condition","PreTimeDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-pre$PrePost<-"Pre-Task"
-names(pre)[3]<-"TimeDiff"
-
-post<-melt(e2.ex[,names (e2.ex) %in% c("ID", "FutureChoice.Num", "Condition", "PostTimeDiff")], 
-           id=c("ID",  "Condition", "PostTimeDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-post$PrePost<-"Post-Task"
-names(post)[3]<-"TimeDiff"
-
-
-time<-rbind(pre, post)
-time$PrePost<-factor(time$PrePost)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-
-```
-
-
-```{r}
-timemod1<-glmer(Choice.Num~PrePost+TimeDiff+(1|ID), family="binomial", data=time)
-# timemod2<-glmer(Choice.Num~PrePost*TimeDiff+(1|ID), family="binomial", data=time)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-timemod2<-glmer(Choice.Num~PrePost+TimeDiff+(1|ID), family="binomial", data=time)
-
-tab_model(timemod1, timemod2, transform = NULL, show.stat = T)
-
-```
-
-
 
 
 
 ### Task Progress (Minutes Remaining)
 
+Loading progress data from a separate file 
+
 ```{r}
-probe.raw<-read.csv("E2 Progress.csv")
+probe.raw<-read.csv("E2 Progress_13Feb2020.csv")
 probe<- probe.raw[!is.na(probe.raw$PromptTime&probe.raw$Response),]
 e2probe<-merge(e2.ex, probe[-c(2)], by="ID", all.x=T, all.y = F)
 e2probe$Progress<-e2probe$PromptTime/e2probe$ActualTime_Total
@@ -651,182 +678,200 @@ proge2$Progress.c<-proge2$Progress-mean(proge2$Progress)
 
 ```
 
-<!-- #### Standardized Progress Bars -->
-<!-- ```{r} -->
-<!-- e2.ex$TaskBegin<-0 # create a column for the start of the task -->
-<!-- objprog<-melt(e2.ex, id=c(1:17, 19, 21:36), -->
-<!--               variable.name = "TaskStart", value.name = "Time") -->
-<!-- objprog$TaskStart<-factor(recode(objprog$TaskStart, "'ActualTime_Org'='Search Start'; -->
-<!--                           'ActualTime_Total'='Search End'; -->
-<!--                           'TaskBegin'='Task Start'")) -->
-<!-- objprog$TaskStart<-factor(objprog$TaskStart, levels(objprog$TaskStart)[c(3,2,1)]) -->
-<!-- objprog$Time<-recode(objprog$Time, "NA=0") -->
-
-<!-- objp<-merge(objprog, e2.ex[c(2, 20)], by="ID", all.x=T, all.y=F) # getting total task time again to calc. progress -->
-<!-- objp$Progress<-objp$Time/objp$ActualTime_Total -->
-<!-- objp$Response<-ifelse(objp$ActualTime_Total==objp$Time, 0, objp$ActualTime_Total) -->
-<!-- objp$Type<-factor("Objective") -->
-
-<!-- proge2$Type<-factor("Estimated") -->
-
-<!-- proge2.all<-rbind(proge2[c(1,6, 44, 41, 46)], objp[c(1,6, 38:40)]) -->
-<!-- ``` -->
-
-
 #### Analysis
 
+Curvilinear models:
+
+1. Model with progress as a quadratic term; only the intercept is allowed to vary per individual
+2. Model with progress as a quadratic term; the slope for the quadratic term and the intercept were allowed vary per individual
+
+**Note:** Model #2 does not have enough observations to produce a solution when the quadratic progress predictor slope varies as a function of individuals so model comparison was not attempted and we selected model 1.
+
 ```{r}
+# curvilinear models
 prog.mod1<-lmer(Response~Progress.c+I(Progress.c^2)*Condition+(1|ID), data = proge2, REML = F,
                 contrasts = list(Condition = "contr.sum"))
-
-summary(prog.mod1)
-tab_model(prog.mod1, show.stat = T, digits.p = 2)
-
-```
-
-
-<p style="color:red">Note: the output labels of the tab_model table is incorrect! Refer to the summary for the actual labels </p>
-
-<!-- ##### Search Only Strategy -->
-
-<!-- ```{r} -->
-<!-- search.e2<-subset(proge2.all, Condition=="Search Only") -->
-<!-- search.e2$Progress.c<-search.e2$Progress-mean(search.e2$Progress) -->
-
-<!-- mod.s1<-lmer(Response~Progress.c*Type+(1|ID), data = search.e2, REML = F,  -->
-<!--              contrasts = list(Type="contr.sum")) -->
-<!-- mod.s2<-lmer(Response~Progress.c*Type+(Progress.c|ID), data = search.e2, REML = F,  -->
-<!--              contrasts = list(Type="contr.sum")) -->
-<!-- anova(mod.s1, mod.s2) -->
-<!-- tab_model(mod.s2,  transform=NULL, show.stat = T, p.val = "wald", digits.p = 2) -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- plot_model(mod.s2, type="int") -->
-<!-- ``` -->
-
-<!-- ##### Organization Strategy -->
-
-<!-- ```{r} -->
-<!-- org.e2<-subset(proge2.all, Condition=="Organization") -->
-<!-- org.e2$Progress.c<-org.e2$Progress-mean(org.e2$Progress) -->
-
-<!-- mod.o1<-lmer(Response~Progress.c+I(Progress.c^2)*Type+(1|ID), data = org.e2, REML = F,  -->
-<!--              contrasts = list(Type="contr.sum")) -->
-<!-- # mod.o2<-lmer(Response~Progress.c+I(Progress.c^2)*Type+(I(Progress.c^2)|ID), data = org.e2, REML = F,  -->
-<!-- #              contrasts = list(Type="contr.sum")) -->
-<!-- # ss <- getME(mod.o2, c("theta","fixef")) -->
-<!-- # mod.o3 <- update(mod.o2, start=ss, control=lmerControl(optCtrl=list(maxfun=2e4))) -->
-
-<!-- # anova(mod.o1, mod.o3) -->
-<!-- tab_model(mod.o1, transform=NULL, show.stat = T, p.val = "wald", digits.p = 2) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- plot_model(mod.o1, type="int") -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- mod.o4<-lmer(Response~Progress.c+I(Progress.c^2)+(1|ID),  -->
-<!--              data = org.e2[org.e2$Type=="Estimated",], REML = F) -->
-<!-- mod.o5<-lmer(Response~Progress.c+I(Progress.c^2)+(1|ID),  -->
-<!--              data = org.e2[org.e2$Type=="Objective",], REML = F) -->
-
-<!-- tab_model(mod.o4, mod.o5, show.stat = T, digits.p = 2) -->
-
-<!-- ``` -->
-
-```{r}
-prog.mod2<-lmer(Response~Progress.c*Condition+(1|ID), data = proge2, REML = F,
+prog.mod2<-lmer(Response~Progress.c+I(Progress.c^2)*Condition+(I(Progress.c^2)|ID), data = proge2, REML = F,
                 contrasts = list(Condition = "contr.sum"))
-prog.mod3<-lmer(Response~Progress.c*Condition+(Progress.c|ID), data = proge2, REML = F,
+
+tab_model(prog.mod1, prog.mod2, show.stat = T, digits.p = 2)
+```
+
+Linear models: 
+
+3. Model with progress as a linear term; only the intercept is allowed to vary per individual
+4. Model with progress as a linear term; the slope for the linear term and the intercept were allowed vary per individual
+
+**Note:** we increased the number of iterations in order for the gradient to converge
+
+```{r}
+prog.mod3<-lmer(Response~Progress.c*Condition+(1|ID), data = proge2, REML = F,
                 contrasts = list(Condition = "contr.sum"))
-ss <- getME(prog.mod3,c("theta","fixef"))
-prog.mod4 <- update(prog.mod3, start=ss, control=lmerControl(optCtrl=list(maxfun=2e4)))
+prog.mod4<-lmer(Response~Progress.c*Condition+(Progress.c|ID), data = proge2, REML = F,
+                contrasts = list(Condition = "contr.sum"))
+# convergence issue, increase number of iterations to find solution
+ss <- getME(prog.mod4,c("theta","fixef"))
+prog.mod4.2 <- update(prog.mod4, start=ss, control=lmerControl(optCtrl=list(maxfun=2e4)))
 
-anova(prog.mod2, prog.mod4)
-
-tab_model(prog.mod2, prog.mod4, show.stat = T, digits.p = 2)
-
+tab_model(prog.mod3, prog.mod4.2, show.stat = T, digits.p = 2)
 ```
+
+Model comparison results: 
+```{r}
+anova(prog.mod3, prog.mod4.2)
+```
+
+
+<!-- ## E2 Figures -->
+
+<!-- ### Figure 4 (Objective Time and Time Estimates) -->
+
+<!-- ```{r} -->
+<!-- # Pre-Task Estimates -->
+<!-- time.pre<-melt(e2[,names(e2) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "Time_OrgTotal", "Time_SearchTotal")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time") -->
+<!-- time.pre$PrePostTask<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="Time_SearchTotal", -->
+<!--                                 "Pre-Task Estimation", "Post-Task Estimation")) -->
+<!-- time.pre$Strategy<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="PostTime_OrgTotal", -->
+<!--                                 "Organization", "Search Only")) -->
+<!-- # Post-Task Estimates -->
+<!-- time.post<-melt(e2.ex[,names(e2.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "PostTime_OrgTotal", "PostTime_SearchTotal")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time") -->
+<!-- time.post$PrePostTask<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="Time_SearchTotal", -->
+<!--                                 "Pre-Task Estimation", "Post-Task Estimation")) -->
+<!-- time.post$Strategy<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="PostTime_OrgTotal", -->
+<!--                                 "Organization", "Search Only")) -->
+<!-- # Objective Task Time -->
+<!-- time.act<-melt(e2.ex[,names(e2.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "ActualTime_Total")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time") -->
+<!-- time.act$PrePostTask<-factor("Objective Task Completion Time") -->
+<!-- time.act$Strategy<-factor(time.act$Condition) -->
+
+<!-- time.comb<-rbind(time.pre, time.post, time.act) -->
+<!-- time.comb$PrePostTask<-factor(time.comb$PrePostTask, levels(time.comb$PrePostTask)[c(3,1,2)]) -->
+<!-- time.comb$Strategy<-factor(time.comb$Strategy, levels(time.comb$Strategy)[c(2,1)]) -->
+
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- graph2<-ddply(time.comb, c("PrePostTask", "Strategy"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$Time, na.rm=T), dep.sd=sd(df$Time, na.rm=T), -->
+<!--            dep.count=length(df$Time),  -->
+<!--            dep.sem=(sd(df$Time))/(sqrt(length(df$Time)))))) -->
+
+<!-- png(file = "Lego_Figure 4_TimeE2.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(graph2, aes(x=Strategy, y=dep.avg))+  -->
+<!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
+<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
+<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
+<!--                 width=0, position = position_dodge(0.5))+ -->
+<!--   facet_grid(.~PrePostTask)+ -->
+<!--   theme( -->
+<!--     panel.background= element_rect(fill=NA), # transparent panel -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
+<!--     panel.grid=element_blank(), # remove panel grid -->
+<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
+<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
+<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
+<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
+<!--     axis.text = element_text(color="#432620"), -->
+<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
+<!--     # ,legend.position="none" -->
+<!--   )+ -->
+<!--   scale_y_continuous("Time", breaks=seq(0, 50, 5), limits=c(0, 40))+ -->
+<!--   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4")) -->
+<!--   # geom_hline(yintercept = .5, linetype="dotted")+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   # scale_x_discrete("Experiment")+ -->
+<!--   coord_cartesian(ylim = c(15, 40)) -->
+
+<!-- ``` -->
+
+
+
+
+
+<!-- ### Figure 5 (Choice Pre & Post-Task) -->
+
+<!-- ```{r} -->
+<!-- graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E2",], c("PrePostChoice"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), dep.count=length(df$Choice.Num),  -->
+<!--            dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num)))))) -->
+
+<!-- png(file = "Lego_Figure 5_PreferenceE1.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+
+<!-- ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+  -->
+<!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
+<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
+<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
+<!--                 width=0, position = position_dodge(0.5))+ -->
+<!--   theme( -->
+<!--     panel.background= element_rect(fill=NA), # transparent panel -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
+<!--     panel.grid=element_blank(), # remove panel grid -->
+<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
+<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
+<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
+<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
+<!--     axis.text = element_text(color="#432620"), -->
+<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
+<!--     ,legend.position="none" -->
+<!--   )+ -->
+<!--   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4")) -->
+<!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
+<!--   # geom_vline(xintercept = 1.5, linetype="solid", size = 1)+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   scale_x_discrete("")+ -->
+<!--   scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+ -->
+<!--   coord_cartesian(ylim = c(0, 1))  -->
+
+<!-- ``` -->
+
+
+
+<!-- ### Figure 6 (Subjective Progress) -->
+
+<!-- ```{r} -->
+<!-- png(file = "Lego_Figure 6_TaskProgressE2.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(proge2, aes(x=Progress, y=Response, colour=Condition))+ -->
+<!--   geom_point(size = 3)+ -->
+<!--   scale_colour_manual(values = c("grey20", "grey70"))+ -->
+<!--   geom_smooth(formula = y~x, method = loess, se=F)+ -->
+<!--   scale_y_continuous("Estimated Task Completion Time", limits=c(0, 49))+ -->
+<!--   scale_x_continuous("Proportion Time Spent Performing Task")+ -->
+<!--   theme(# remove the background & grid altogether -->
+<!--     panel.background= element_rect(fill=NA),  -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), -->
+<!--     panel.grid.minor=element_blank(),  -->
+<!--     axis.ticks.x=element_blank(), -->
+<!--     panel.border = element_rect(fill="transparent", colour="grey")) -->
+
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+
+
+### Preference Across E1 & 2
+
+Pooled data across E1 and E2 to examine relative post time estimates as a predictor of post-task choice: 
 
 ```{r}
-plot_model(prog.mod3, "int")
+e12<-subset(df, Study=="In Lab E1"|Study=="In Lab E2")
+e12.ex<-subset(e12, Exclusion!="Exclude")
 
-```
+post.diff<-glm(FutureChoice.Num~Study*PostTimeDiff, family="binomial", data=e12.ex,
+               contrasts = list(Study="contr.sum"))
 
-
-
-
-## E2 Figures
-
-### Figure 3 (Objective Time and Time Estimates)
-
-```{r}
-# Pre-Task Estimates
-time.pre<-melt(e2[,names(e2) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "Time_OrgTotal", "Time_SearchTotal")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time")
-time.pre$PrePostTask<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="Time_SearchTotal",
-                                "Pre-Task Estimation", "Post-Task Estimation"))
-time.pre$Strategy<-factor(ifelse(time.pre$variable=="Time_OrgTotal"|time.pre$variable=="PostTime_OrgTotal",
-                                "Organization", "Search Only"))
-# Post-Task Estimates
-time.post<-melt(e2.ex[,names(e2.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "PostTime_OrgTotal", "PostTime_SearchTotal")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time")
-time.post$PrePostTask<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="Time_SearchTotal",
-                                "Pre-Task Estimation", "Post-Task Estimation"))
-time.post$Strategy<-factor(ifelse(time.post$variable=="Time_OrgTotal"|time.post$variable=="PostTime_OrgTotal",
-                                "Organization", "Search Only"))
-# Objective Task Time
-time.act<-melt(e2.ex[,names(e2.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "ActualTime_Total")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Time")
-time.act$PrePostTask<-factor("Objective Task Completion Time")
-time.act$Strategy<-factor(time.act$Condition)
-
-time.comb<-rbind(time.pre, time.post, time.act)
-time.comb$PrePostTask<-factor(time.comb$PrePostTask, levels(time.comb$PrePostTask)[c(3,1,2)])
-time.comb$Strategy<-factor(time.comb$Strategy, levels(time.comb$Strategy)[c(2,1)])
-
-```
-
-
-
-```{r}
-graph2<-ddply(time.comb, c("PrePostTask", "Strategy"), function(df)   
-  return(c(dep.avg=mean(df$Time, na.rm=T), dep.sd=sd(df$Time, na.rm=T),
-           dep.count=length(df$Time), 
-           dep.sem=(sd(df$Time))/(sqrt(length(df$Time))))))
-
-# png('e2 Time Estimate.png', bg="transparent", width = 6, height = 4, units = 'in', res = 300)
-
-ggplot(graph2, aes(x=Strategy, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  facet_grid(.~PrePostTask)+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    # ,legend.position="none"
-  )+
-  scale_y_continuous("Time", breaks=seq(0, 50, 5), limits=c(0, 40))+
-  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
-  # geom_hline(yintercept = .5, linetype="dotted")+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  # scale_x_discrete("Experiment")+
-  coord_cartesian(ylim = c(15, 40))
+tab_model(post.diff, transform=NULL, show.stat = T, digits.p = 2, digits=2)
 
 ```
 
@@ -834,58 +879,6 @@ ggplot(graph2, aes(x=Strategy, y=dep.avg))+
 
 
 
-### Figure 4 (Choice Pre & Post-Task)
-
-```{r}
-graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E2",], c("PrePostChoice"), function(df)   
-  return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), dep.count=length(df$Choice.Num), 
-           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
-
-ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    ,legend.position="none"
-  )+
-  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
-  geom_hline(yintercept = .5, linetype="dotted")+
-  # geom_vline(xintercept = 1.5, linetype="solid", size = 1)+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  scale_x_discrete("")+
-  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
-  coord_cartesian(ylim = c(0, 1)) 
-
-```
-
-
-
-### Figure 6 (Subjective Progress)
-
-```{r}
-ggplot(proge2, aes(x=Progress, y=Response, colour=Condition))+
-  geom_point(size = 3)+
-  scale_colour_manual(values = c("grey20", "grey70"))+
-  geom_smooth(formula = y~x, method = loess, se=F)+
-  scale_y_continuous("Estimated Task Completion Time", limits=c(0, 49))+
-  scale_x_continuous("Proportion Time Spent Performing Task")+
-  theme(# remove the background & grid altogether
-    panel.background= element_rect(fill=NA), 
-    plot.background = element_rect(fill=NA, colour=NA),
-    panel.grid.minor=element_blank(), 
-    axis.ticks.x=element_blank(),
-    panel.border = element_rect(fill="transparent", colour="grey"))
-```
 
 
 
@@ -901,21 +894,17 @@ ggplot(proge2, aes(x=Progress, y=Response, colour=Condition))+
 
 
 
-
-
-
-
-
-
-
-
-# Experiment 3
+# Experiment 3 Only
 
 ### Demographics
 
-
+Sex:
 ```{r}
 table(e3$Sex)
+```
+
+Mean age and SD:
+```{r}
 mean(e3$Age, na.rm=T)
 sd(e3$Age, na.rm=T)
 
@@ -923,50 +912,81 @@ sd(e3$Age, na.rm=T)
 
 ### Objective Task Time
 
+Welch t-test and group means: 
 ```{r}
 # t-test
 t.test(e3.ex$ActualTime_Total~e3.ex$Condition, paired=F)
+```
 
-# # BF t-test
-# 1/ttestBF(x=e2.ex[e2.ex$Condition=="Search Only",]$ActualTime_Total,
-#         y=e2.ex[e2.ex$Condition=="Organization",]$ActualTime_Total)
-
-# sd
+SDs for the organization and search-only assigned strategies respectively:
+```{r}
 sd(e3.ex[e3.ex$Condition=="Organization",]$ActualTime_Total)
 sd(e3.ex[e3.ex$Condition=="Search Only",]$ActualTime_Total)
+```
 
-# cohen's d
+Hedge's g
+```{r}
 effsize::cohen.d(e3.ex$ActualTime_Total~e3.ex$Condition, paired=F, hedges.correction=T)
+```
+
+Mean time (and SD) that individuals spent in the organization phase while performing the search task in-lab:
+
+```{r}
+mean(e3.ex[e3.ex$Condition=="Organization",]$ActualTime_Org)
+sd(e3.ex[e3.ex$Condition=="Organization",]$ActualTime_Org)
 ```
 
 
 ### Pre-Task Time Estimate
 
+Paired-samples t-test: 
+
 ```{r}
 t.test(e3$Search.Eff, e3$Org.Eff, paired=T)
+```
 
+Means and SDs for the task effort ratings for the organization and search-only strategies respectively:
+```{r}
 mean(e3$Org.Eff)
 sd(e3$Org.Eff)
 
 mean(e3$Search.Eff)
 sd(e3$Search.Eff)
+```
 
+Hedge's g
+```{r}
 effsize::cohen.d(e3$Search.Eff, e3$Org.Eff, paired=T, hedges.correction=T)
 
 ```
 
+Table breaking down the number of individuals who thought the search-only strategy was more effortful, less effortful, or the same as the organization strategy: 
+
+```{r}
+e3$eff.compare<-ifelse(e3$Org.Eff>e3$Search.Eff, "Search Easier", 
+                     ifelse(e3$Org.Eff<e3$Search.Eff, "Organize Easier", "Same"))
+table(e3$eff.compare)
+
+```
 
 ### Pre-Task Time Estimate (final n's)
 
+paired-samples t-test: 
 ```{r}
 t.test(e3.ex$Search.Eff, e3.ex$Org.Eff, paired=T)
+```
 
+means and sds for the effort ratings provided for the organization and search-only strategies respectively: 
+```{r}
 mean(e3.ex$Org.Eff)
 sd(e3.ex$Org.Eff)
 
 mean(e3.ex$Search.Eff)
 sd(e3.ex$Search.Eff)
+```
 
+Hedge's g
+```{r}
 effsize::cohen.d(e3.ex$Search.Eff, e3.ex$Org.Eff, paired=T, hedges.correction=T)
 
 ```
@@ -974,99 +994,72 @@ effsize::cohen.d(e3.ex$Search.Eff, e3.ex$Org.Eff, paired=T, hedges.correction=T)
 
 ### Post-Task Time Estimate
 
+paired-samples t-test (post task):
 ```{r}
 t.test(e3.ex$PostSearch.Eff, e3.ex$PostOrg.Eff, paired=T)
+```
 
+Post-task means and SDs for the task effort ratings for the organization and search-only strategies respectively:
+```{r}
 mean(e3.ex$PostOrg.Eff)
 sd(e3.ex$PostOrg.Eff)
 
 mean(e3.ex$PostSearch.Eff)
 sd(e3.ex$PostSearch.Eff)
+```
 
+Hedge's g:
+```{r}
 effsize::cohen.d(e3.ex$PostSearch.Eff, e3.ex$PostOrg.Eff, paired=T, hedges.correction=T)
+```
 
+Table breaking down the number of individuals who thought the search-only strategy was more effortful, less effortful, or the same as the organization strategy post-task: 
+```{r}
+e3.ex$eff.compare<-ifelse(e3.ex$PostOrg.Eff>e3.ex$PostSearch.Eff, "Search Easier", 
+                     ifelse(e3.ex$PostOrg.Eff<e3.ex$PostSearch.Eff, "Organize Easier", "Same"))
+table(e3.ex$eff.compare)
 ```
 
 
 
+### Pre- & Post-Task Choices
+
+Pre-task preference:
+```{r}
+chisq.test(table(e3$Choice))
+36/(36+13)
+```
+
+Post-task preference:
+```{r}
+chisq.test(table(e3.ex$Future.Choice))
+33/(33+13)
+```
 
 
-### Mixed Model (Time Estimate Predicting Pre/Post Task)
+### Pre- & Post-Task Time Estimates Predicting Choice
+
+1. pre-task preference as a function of relative task effort using the full data set
+2. pre-task preference as a function of relative task effort using the same subsetted data as in the post-task model
+3. post-task preference as a function of relative task effort, using the subsetted data
 
 ```{r}
-pre<-melt(e3[,names (e3) %in% c("ID", "Choice.Num", "Condition", "PreEffDiff")], 
-          id=c("ID", "Condition","PreEffDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-pre$PrePost<-"Pre-Task"
-names(pre)[3]<-"EffDiff"
+e3.pre<-glm(Choice.Num ~ PreEffDiff, family="binomial", data=e3)
+e3.pre2<-glm(Choice.Num ~ PreEffDiff, family="binomial", data=e3.ex)
+e3.post<-glm(FutureChoice.Num ~ PostEffDiff, family="binomial", data=e3.ex)
 
-post<-melt(e3.ex[,names (e3.ex) %in% c("ID", "FutureChoice.Num", "Condition", "PostEffDiff")], 
-           id=c("ID",  "Condition", "PostEffDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-post$PrePost<-"Post-Task"
-names(post)[3]<-"EffDiff"
-
-time<-rbind(pre, post)
-time$PrePost<-factor(time$PrePost)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-
+tab_model(e3.pre, e3.pre2, e3.post, transform=NULL, show.stat = T, digits.p=2)
 ```
-
-
-```{r}
-timemod1<-glmer(Choice.Num~PrePost+EffDiff+(1|ID), family="binomial", data=time)
-timemod3<-glmer(Choice.Num~PrePost*EffDiff+(1|ID), family="binomial", data=time)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-timemod2<-glmer(Choice.Num~PrePost+EffDiff+(1|ID), family="binomial", data=time)
-
-tab_model(timemod1, timemod2, timemod3, transform = NULL, show.stat = T)
-
-```
-
-
-### Mixed Model (with only subjets from final n)
-
-```{r}
-pre<-melt(e3.ex[,names (e3.ex) %in% c("ID", "Choice.Num", "Condition", "PreEffDiff")], 
-          id=c("ID", "Condition","PreEffDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-pre$PrePost<-"Pre-Task"
-names(pre)[3]<-"EffDiff"
-
-post<-melt(e3.ex[,names (e3.ex) %in% c("ID", "FutureChoice.Num", "Condition", "PostEffDiff")], 
-           id=c("ID",  "Condition", "PostEffDiff"), 
-          variable.name = "PrePost", value.name = "Choice.Num")
-post$PrePost<-"Post-Task"
-names(post)[3]<-"EffDiff"
-
-time<-rbind(pre, post)
-time$PrePost<-factor(time$PrePost)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-
-```
-
-
-```{r}
-timemod1<-glmer(Choice.Num~PrePost+EffDiff+(1|ID), family="binomial", data=time)
-timemod3<-glmer(Choice.Num~PrePost*EffDiff+(1|ID), family="binomial", data=time)
-time$PrePost<-factor(time$PrePost, levels(time$PrePost)[c(2,1)])
-timemod2<-glmer(Choice.Num~PrePost+EffDiff+(1|ID), family="binomial", data=time)
-
-tab_model(timemod1, timemod2, timemod3, transform = NULL, show.stat = T)
-
-```
-
-
-
-
 
 
 
 
 ## Task Progress (Proportion Task Completed)
 
+Loading progress data from a separate file 
+
 ```{r}
-probe.raw<-read.csv("E3 Progress.csv")
+probe.raw<-read.csv("E3 Progress_13Feb2020.csv")
 names(probe.raw)<-c("Subject", "Condition", "Prompt", "PromptTime", "TotalDistance", "PromptDistance", "PerceivedProgress", "Comment", "ID")
 probe<- probe.raw[!is.na(probe.raw$PromptTime & probe.raw$PromptDistance),]
 e3probe<-merge(e3.ex, probe[-c(2)], by="ID", all.x=T, all.y = F) # remove redundant condition column
@@ -1082,38 +1075,47 @@ proge3$Progress.c<-proge3$Progress-mean(proge3$Progress)
 
 #### Analysis
 
+Models run: 
+
+Curvilinear models:
+
+1. Model with progress as a quadratic term; only the intercept is allowed to vary per individual
+2. Model with progress as a quadratic term; the slope for the quadratic term and the intercept were allowed vary per individual
+
 ```{r}
 prog.mod1<-lmer(PerceivedProgress~Progress.c+I(Progress.c^2)*Condition+(1|ID), data = proge3, REML = F,
                 contrasts = list(Condition = "contr.sum"))
 prog.mod2<-lmer(PerceivedProgress~Progress.c+I(Progress.c^2)*Condition+(I(Progress.c^2)|ID), data = proge3, REML = F,
                 contrasts = list(Condition = "contr.sum"))
 
+tab_model(prog.mod1, prog.mod2, show.stat = T, digits.p = 2, digits=2)
+```
+
+Model comparison:
+
+```{r}
 anova(prog.mod1, prog.mod2)
-tab_model(prog.mod1, show.stat = T, digits.p = 2)
 
-summary(prog.mod1)
 ```
 
+Linear models: 
 
-<p style="color:red">Note: the output labels of the tab_model table is incorrect! Refer to the summary for the actual labels </p>
-
-
+3. Model with progress as a linear term; only the intercept is allowed to vary per individual
+4. Model with progress as a linear term; the slope for the linear term and the intercept were allowed vary per individual
 
 ```{r}
-prog.mod2<-lmer(PerceivedProgress~Progress.c*Condition+(1|ID), data = proge3, REML = F,
+# linear models
+prog.mod3<-lmer(PerceivedProgress~Progress.c*Condition+(1|ID), data = proge3, REML = F,
                 contrasts = list(Condition = "contr.sum"))
-prog.mod3<-lmer(PerceivedProgress~Progress.c*Condition+(Progress.c|ID), data = proge3, REML = F,
+prog.mod4<-lmer(PerceivedProgress~Progress.c*Condition+(Progress.c|ID), data = proge3, REML = F,
                 contrasts = list(Condition = "contr.sum"))
 
-anova(prog.mod2, prog.mod3)
-
-tab_model(prog.mod2, show.stat = T, digits.p = 2)
-
+tab_model(prog.mod3, prog.mod4, show.stat = T, digits.p = 2, digits=2)
 ```
 
+Model comparison:
 ```{r}
-plot_model(prog.mod3, "int")
-
+anova(prog.mod3, prog.mod4)
 ```
 
 
@@ -1121,127 +1123,133 @@ plot_model(prog.mod3, "int")
 
 
 
+<!-- ## E3 Figures -->
 
-## E3 Figures
+<!-- ### Figure 9 (Task Effort Estimates) -->
 
-### Figure 8 (Objective Time and Time Estimates)
+<!-- ```{r} -->
+<!-- # Pre-Task Estimates -->
+<!-- eff.pre<-melt(e3[,names(e3) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "Org.Eff", "Search.Eff")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Effort") -->
+<!-- eff.pre$PrePostTask<-factor(ifelse(eff.pre$variable=="Org.Eff"|eff.pre$variable=="Search.Eff", -->
+<!--                                 "Pre-Task Rating", "Post-Task Rating")) -->
+<!-- eff.pre$Strategy<-factor(ifelse(eff.pre$variable=="Org.Eff"|eff.pre$variable=="PostOrg.Eff", -->
+<!--                                 "Organization", "Search Only")) -->
+<!-- # Post-Task Estimates -->
+<!-- eff.post<-melt(e3.ex[,names(e3.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition", -->
+<!--                                           "PostOrg.Eff", "PostSearch.Eff")],  -->
+<!--                id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Effort") -->
+<!-- eff.post$PrePostTask<-factor(ifelse(eff.post$variable=="Org.Eff"|eff.post$variable=="Search.Eff", -->
+<!--                                 "Pre-Task Rating", "Post-Task Rating")) -->
+<!-- eff.post$Strategy<-factor(ifelse(eff.post$variable=="Org.Eff"|eff.post$variable=="PostOrg.Eff", -->
+<!--                                 "Organization", "Search Only")) -->
 
-```{r}
-# Pre-Task Estimates
-eff.pre<-melt(e3[,names(e3) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "Org.Eff", "Search.Eff")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Effort")
-eff.pre$PrePostTask<-factor(ifelse(eff.pre$variable=="Org.Eff"|eff.pre$variable=="Search.Eff",
-                                "Pre-Task Rating", "Post-Task Rating"))
-eff.pre$Strategy<-factor(ifelse(eff.pre$variable=="Org.Eff"|eff.pre$variable=="PostOrg.Eff",
-                                "Organization", "Search Only"))
-# Post-Task Estimates
-eff.post<-melt(e3.ex[,names(e3.ex) %in% c("Study", "ID", "Age", "Sex", "Choice", "Condition",
-                                          "PostOrg.Eff", "PostSearch.Eff")], 
-               id=c("Study", "ID", "Age", "Sex", "Choice", "Condition"), value.name="Effort")
-eff.post$PrePostTask<-factor(ifelse(eff.post$variable=="Org.Eff"|eff.post$variable=="Search.Eff",
-                                "Pre-Task Rating", "Post-Task Rating"))
-eff.post$Strategy<-factor(ifelse(eff.post$variable=="Org.Eff"|eff.post$variable=="PostOrg.Eff",
-                                "Organization", "Search Only"))
+<!-- eff.comb<-rbind(eff.pre, eff.post) -->
+<!-- eff.comb$Strategy<-factor(eff.comb$Strategy, levels(eff.comb$Strategy)[c(2,1)]) -->
 
-eff.comb<-rbind(eff.pre, eff.post)
-eff.comb$Strategy<-factor(eff.comb$Strategy, levels(eff.comb$Strategy)[c(2,1)])
-
-```
-
+<!-- ``` -->
 
 
-```{r}
-graph2<-ddply(eff.comb, c("PrePostTask", "Strategy"), function(df)   
-  return(c(dep.avg=mean(df$Effort, na.rm=T), dep.sd=sd(df$Effort, na.rm=T),
-           dep.count=length(df$Effort), 
-           dep.sem=(sd(df$Effort))/(sqrt(length(df$Effort))))))
 
-# png('e2 Time Estimate.png', bg="transparent", width = 6, height = 4, units = 'in', res = 300)
+<!-- ```{r} -->
+<!-- graph2<-ddply(eff.comb, c("PrePostTask", "Strategy"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$Effort, na.rm=T), dep.sd=sd(df$Effort, na.rm=T), -->
+<!--            dep.count=length(df$Effort),  -->
+<!--            dep.sem=(sd(df$Effort))/(sqrt(length(df$Effort)))))) -->
 
-ggplot(graph2, aes(x=Strategy, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  facet_grid(.~PrePostTask)+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    # ,legend.position="none"
-  )+
-  scale_y_continuous("Time", breaks=seq(0, 10, 1), limits=c(0, 40))+
-  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
-  # geom_hline(yintercept = .5, linetype="dotted")+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  # scale_x_discrete("Experiment")+
-  coord_cartesian(ylim = c(1, 6))
+<!-- png(file = "Lego_Figure 9_EffortE3.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
 
-```
+<!-- ggplot(graph2, aes(x=Strategy, y=dep.avg))+  -->
+<!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
+<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
+<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
+<!--                 width=0, position = position_dodge(0.5))+ -->
+<!--   facet_grid(.~PrePostTask)+ -->
+<!--   theme( -->
+<!--     panel.background= element_rect(fill=NA), # transparent panel -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
+<!--     panel.grid=element_blank(), # remove panel grid -->
+<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
+<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
+<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
+<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
+<!--     axis.text = element_text(color="#432620"), -->
+<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
+<!--     # ,legend.position="none" -->
+<!--   )+ -->
+<!--   scale_y_continuous("Perceived Task Effort", breaks=seq(0, 10, 1), limits=c(0, 40))+ -->
+<!--   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4")) -->
+<!--   # geom_hline(yintercept = .5, linetype="dotted")+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   # scale_x_discrete("Experiment")+ -->
+<!--   coord_cartesian(ylim = c(1, 6)) -->
 
+<!-- ``` -->
 
 
 
 
-### Figure 9 (Choice Pre & Post-Task)
 
-```{r}
-graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E3",], c("PrePostChoice"), function(df)   
-  return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), dep.count=length(df$Choice.Num), 
-           dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num))))))
+<!-- ### Figure 10 (Choice Pre & Post-Task) -->
 
-ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    ,legend.position="none"
-  )+
-  # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
-  geom_hline(yintercept = .5, linetype="dotted")+
-  # geom_vline(xintercept = 1.5, linetype="solid", size = 1)+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  scale_x_discrete("")+
-  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
-  coord_cartesian(ylim = c(0, 1)) 
+<!-- ```{r} -->
+<!-- graph2<-ddply(lab.choice[lab.choice$Study=="In Lab E3",], c("PrePostChoice"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$Choice.Num, na.rm=T), dep.sd=sd(df$Choice.Num, na.rm=T), dep.count=length(df$Choice.Num),  -->
+<!--            dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num)))))) -->
 
-```
+<!-- png(file = "Lego_Figure 10_PreferenceE3.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(graph2, aes(x=PrePostChoice, y=dep.avg))+  -->
+<!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
+<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
+<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
+<!--                 width=0, position = position_dodge(0.5))+ -->
+<!--   theme( -->
+<!--     panel.background= element_rect(fill=NA), # transparent panel -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
+<!--     panel.grid=element_blank(), # remove panel grid -->
+<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
+<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
+<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
+<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
+<!--     axis.text = element_text(color="#432620"), -->
+<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
+<!--     ,legend.position="none" -->
+<!--   )+ -->
+<!--   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4")) -->
+<!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
+<!--   # geom_vline(xintercept = 1.5, linetype="solid", size = 1)+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   scale_x_discrete("")+ -->
+<!--   scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+ -->
+<!--   coord_cartesian(ylim = c(0, 1))  -->
+
+<!-- ``` -->
 
 
 
-### Figure 10 (Subjective Progress)
+<!-- ### Figure 11 (Subjective Progress) -->
 
-```{r}
-ggplot(proge3, aes(x=Progress, y=PerceivedProgress, colour=Condition))+
-  geom_point(size = 3)+
-  scale_colour_manual(values = c("grey20", "grey70"))+
-  geom_smooth(formula = y~x, method = loess, se=F)+
-  scale_y_continuous("Estimated Task Completion Time", limits=c(0, 1))+
-  scale_x_continuous("Proportion Time Spent Performing Task")+
-  theme(# remove the background & grid altogether
-    panel.background= element_rect(fill=NA), 
-    plot.background = element_rect(fill=NA, colour=NA),
-    panel.grid.minor=element_blank(), 
-    axis.ticks.x=element_blank(),
-    panel.border = element_rect(fill="transparent", colour="grey"))
-```
+<!-- ```{r} -->
+<!-- png(file = "Lego_Figure 11_TaskProgressE3.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(proge3, aes(x=Progress, y=PerceivedProgress, colour=Condition))+ -->
+<!--   geom_point(size = 3)+ -->
+<!--   scale_colour_manual(values = c("grey20", "grey70"))+ -->
+<!--   geom_smooth(formula = y~x, method = loess, se=F)+ -->
+<!--   scale_y_continuous("Estimated Proportion Task Progress", limits=c(0, 1))+ -->
+<!--   scale_x_continuous("Proportion Time Spent Performing Task")+ -->
+<!--   theme(# remove the background & grid altogether -->
+<!--     panel.background= element_rect(fill=NA),  -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), -->
+<!--     panel.grid.minor=element_blank(),  -->
+<!--     axis.ticks.x=element_blank(), -->
+<!--     panel.border = element_rect(fill="transparent", colour="grey"))+ -->
+<!--    labs(colour = "Assigned\nStrategy") -->
+
+<!-- dev.off() -->
+<!-- ``` -->
 
 
 
@@ -1284,44 +1292,53 @@ ggplot(proge3, aes(x=Progress, y=PerceivedProgress, colour=Condition))+
 
 ### Post-Task Examination
 
+Post-task preference as a function of pre-task preference and assigned strategy
+
 ```{r}
-post.mod<-glm(FutureChoice.Num~Choice+Condition, family="binomial", data=lab.ex)
+post.mod<-glm(FutureChoice.Num~Choice+Condition, family="binomial", data=lab.ex,
+              contrasts = list(Choice="contr.sum", Condition="contr.sum"))
 
 tab_model(post.mod, transform = NULL, show.stat = T)
 ```
 
-```{r}
-graph2<-ddply(lab.ex, c("Choice", "Condition"), function(df)   
-  return(c(dep.avg=mean(df$FutureChoice.Num, na.rm=T), dep.sd=sd(df$FutureChoice.Num, na.rm=T),
-           dep.count=length(df$FutureChoice.Num), 
-           dep.sem=(sd(df$FutureChoice.Num))/(sqrt(length(df$FutureChoice.Num))))))
 
-ggplot(graph2, aes(x=Choice, y=dep.avg, group=Condition, colour=Condition))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5))+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)),
-                width=0, position = position_dodge(0.5))+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    # ,legend.position="none"
-  )+
-  scale_y_continuous("Proportion Choosing an Organization Strategy", 
-                     breaks=seq(0, 1, 0.1))+
-  scale_colour_manual("Assigned\nStrategy", values=c("grey20", "grey70"))+
-  geom_hline(yintercept = .5, linetype="dotted")+
-  # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+
-  scale_x_discrete("Pre-Task Strategy Preference")+
-  coord_cartesian(ylim = c(0,1))
 
-```
+
+
+<!-- ```{r} -->
+<!-- graph2<-ddply(lab.ex, c("Choice", "Condition"), function(df)    -->
+<!--   return(c(dep.avg=mean(df$FutureChoice.Num, na.rm=T), dep.sd=sd(df$FutureChoice.Num, na.rm=T), -->
+<!--            dep.count=length(df$FutureChoice.Num),  -->
+<!--            dep.sem=(sd(df$FutureChoice.Num))/(sqrt(length(df$FutureChoice.Num)))))) -->
+
+<!-- png(file = "Lego_Figure 12_CombinedAnalysisE1-3.png", bg = "white", type = c("cairo"), width=2400, height=1500, res=300) -->
+
+<!-- ggplot(graph2, aes(x=Choice, y=dep.avg, group=Condition, colour=Condition))+  -->
+<!--   geom_point(size=4, shape=17, position = position_dodge(0.5))+ -->
+<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
+<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
+<!--                 width=0, position = position_dodge(0.5))+ -->
+<!--   theme( -->
+<!--     panel.background= element_rect(fill=NA), # transparent panel -->
+<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
+<!--     panel.grid=element_blank(), # remove panel grid -->
+<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
+<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
+<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
+<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), #  -->
+<!--     axis.text = element_text(color="#432620"), -->
+<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
+<!--     # ,legend.position="none" -->
+<!--   )+ -->
+<!--   scale_y_continuous("Proportion Choosing an Organization Strategy\nPost-Task",  -->
+<!--                      breaks=seq(0, 1, 0.1))+ -->
+<!--   scale_colour_manual("Assigned\nStrategy", values=c("grey20", "grey70"))+ -->
+<!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
+<!--   # scale_colour_manual(values=wes_palette("IsleofDogs1", n = 2, type="discrete"))+ -->
+<!--   scale_x_discrete("Pre-Task Strategy Preference")+ -->
+<!--   coord_cartesian(ylim = c(0,1)) -->
+
+<!-- ``` -->
 
 
 
