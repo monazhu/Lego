@@ -937,7 +937,7 @@ sd(e3.ex[e3.ex$Condition=="Organization",]$ActualTime_Org)
 ```
 
 
-### Pre-Task Time Estimate
+### Pre-Task Effort Estimate
 
 Paired-samples t-test: 
 
@@ -969,7 +969,7 @@ table(e3$eff.compare)
 
 ```
 
-### Pre-Task Time Estimate (final n's)
+### Pre-Task Effort Estimate (final n's)
 
 paired-samples t-test: 
 ```{r}
@@ -992,7 +992,7 @@ effsize::cohen.d(e3.ex$Search.Eff, e3.ex$Org.Eff, paired=T, hedges.correction=T)
 ```
 
 
-### Post-Task Time Estimate
+### Post-Task Effort Estimate
 
 paired-samples t-test (post task):
 ```{r}
@@ -1037,7 +1037,7 @@ chisq.test(table(e3.ex$Future.Choice))
 ```
 
 
-### Pre- & Post-Task Time Estimates Predicting Choice
+### Pre- & Post-Task Effort Ratings Predicting Choice
 
 1. pre-task preference as a function of relative task effort using the full data set
 2. pre-task preference as a function of relative task effort using the same subsetted data as in the post-task model
