@@ -1,0 +1,592 @@
+---
+title: "Lego E4-7 & Combined In-Lab/Online Analyses"
+author: Mona Zhu
+date: Updated February 7, 2020
+output: 
+  html_document:
+    fig_width: 8
+    fig_height: 5
+    toc: true
+    toc_float: true
+    theme: cerulean
+    highlight: tango
+    code_folding: hide
+---
+
+<style>
+pre code, pre, code {
+  overflow-y: auto !important;
+  max-height: 20em;
+}
+</style>
+
+```{r, message=F, warning=F}
+# libraries
+library(car)
+library(ggplot2)
+library(plyr)
+library(reshape2)
+library(wesanderson)
+library(corrplot)
+library(BayesFactor)
+library(sjPlot)
+library(ez)
+library(lme4)
+library(RColorBrewer)
+library(openxlsx)
+library(corrgram)
+library(ggalluvial)
+library(BayesFactor)
+library(lme4)
+library(sjmisc)
+# library(irr)
+```
+
+```{r }
+# setwd("C:/Users/monaj/Dropbox/CANB Lab/Lego & Search/Online Lego Study")
+df<-read.csv("C:/Users/MonaZhu/Dropbox/CANB Lab/Lego & Search/Combined Data/Lego_Combined In-Lab&Turk&SONA_9Dec2019.csv")
+
+df$StudyType<-factor(ifelse(df$Study=="Sona E1"|df$Study=="Sona E2", "Sona", 
+                     ifelse(df$Study=="Mturk E1"|df$Study=="Mturk E2"|df$Study=="Mturk E3", "Mturk", "In Lab")))
+
+# Pre-Task Choice
+df$Choice<-factor(recode(as.character(df$Choice), "''=NA; 'Categorize then search'='Organization'; 
+                  'Search without categorizing'='Search Only'"))
+df$Choice<-factor(df$Choice, levels(df$Choice)[c(2,1)])
+df$Choice.Num<-ifelse(df$Choice=="Organization", 1, 0)
+
+# Post-Task Choice (in-lab only)
+df$Future.Choice<-factor(recode(as.character(df$Future.Choice), "''=NA; 
+                                'Categorize then search'='Organization'; 
+                                'Search without categorizing'='Search Only'"))
+df$Future.Choice<-factor(df$Future.Choice, levels(df$Future.Choice)[c(2,1)])
+df$FutureChoice.Num<-ifelse(df$Future.Choice=="Organization", 1, 0)
+
+# Assigned Condition (in-lab only)
+df$Condition<-factor(recode(as.character(df$Condition), "''=NA; 'Categorize then search'='Organization';
+                     'Search without categorizing'='Search Only'"))
+df$Condition<-factor(df$Condition, levels(df$Condition)[c(2,1)])
+
+# Recoding other variables
+df$PreTimeDiff<-as.numeric(df$Time_SearchTotal-df$Time_OrgTotal)
+df$PostTimeDiff<-as.numeric(df$PostTime_SearchTotal-df$PostTime_OrgTotal)
+df$PreEffDiff<-as.numeric(df$Search.Eff-df$Org.Eff)
+df$PostEffDiff<-as.numeric(df$PostSearch.Eff-df$PostOrg.Eff)
+df$FunDiff<-as.numeric(df$Search.Fun-df$Org.Fun)
+df$Switch<-ifelse(is.na(df$Future.Choice), NA, 
+                  ifelse(df$Choice==df$Future.Choice, "Same", "Switched"))
+df$Switch.Num<-ifelse(df$Switch=="Same", 0, 1)
+
+# time<-df[complete.cases(df$Time_Org.min), ] # data set where time estimation was measured
+# eff<-df[complete.cases(df$Org.Eff), ] # dataset
+# fun<-df[complete.cases(df$Org.Fun), ]
+# post<-df[!is.na(df$Future.Choice),]
+```
+
+# mturk: MTurk
+```{r}
+mturk.raw<-subset(df, Study %in% c("Mturk E2", "Mturk E3"))
+mturk<-subset(mturk.raw, !is.na(Age))
+mturk$Study<-as.factor(as.character(mturk$Study))
+```
+
+
+### Demographics
+
+Sex:
+
+```{r}
+table(mturk$Sex)
+table(mturk$Sex, mturk$Study)
+
+```
+
+Mean age and SD respectively: 
+```{r}
+mean(mturk$Age)
+sd(mturk$Age)
+
+```
+
+Sample 1:
+```{r}
+mean(mturk[mturk$Study=="Mturk E2",]$Age)
+sd(mturk[mturk$Study=="Mturk E2",]$Age)
+
+```
+
+Sample 2:
+```{r}
+mean(mturk[mturk$Study=="Mturk E3",]$Age)
+sd(mturk[mturk$Study=="Mturk E3",]$Age)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+### Mturk Sample Time Estimate
+
+
+Graph:
+
+```{r}
+time.mturk<-melt(mturk, id=c(1:9, 11:12, 14:ncol(mturk)),
+                 variable.name = "Strategy", value.name = "Time") # col 10 & 13 are the time estimates
+time.mturk$Strategy<-factor(recode(time.mturk$Strategy, "'Time_OrgTotal'='Organization';
+                                   'Time_SearchTotal'='Search Only'"))
+
+ggplot(time.mturk, aes(x = Strategy, y = Time))+
+  facet_grid(.~Study)+
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+```
+
+Wilcoxon Ranked Sign Test: 
+```{r}
+wilcox.test(mturk$Time_OrgTotal, mturk$Time_SearchTotal, paired=T) 
+```
+
+
+Sample 1: 
+```{r}
+wilcox.test(mturk[mturk$Study=="Mturk E2",]$Time_OrgTotal, mturk[mturk$Study=="Mturk E2",]$Time_SearchTotal, paired=T, exact=F) 
+```
+
+Sample 2: 
+```{r}
+wilcox.test(mturk[mturk$Study=="Mturk E3",]$Time_OrgTotal, mturk[mturk$Study=="Mturk E3",]$Time_SearchTotal, paired=T, exact=F) 
+```
+
+
+
+
+
+
+
+Estimated median time for the organization strategy:
+```{r}
+median(mturk$Time_OrgTotal)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(mturk[mturk$Study=="Mturk E2",]$Time_OrgTotal)
+median(mturk[mturk$Study=="Mturk E3",]$Time_OrgTotal)
+```
+
+Estimated median time for the search-only strategy:
+```{r}
+median(mturk$Time_SearchTotal)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(mturk[mturk$Study=="Mturk E2",]$Time_SearchTotal)
+median(mturk[mturk$Study=="Mturk E3",]$Time_SearchTotal)
+```
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
+
+```{r}
+mturk$time.compare<-ifelse(mturk$Time_OrgTotal>mturk$Time_SearchTotal, "Search Faster", 
+                     ifelse(mturk$Time_OrgTotal<mturk$Time_SearchTotal, "Organize Faster", "Same"))
+table(mturk$time.compare)
+
+```
+
+
+
+
+
+
+###Strategy preference
+
+(With sample as factor)
+```{r}
+chisq.test(table(mturk$Choice, mturk$Study))
+table(mturk$Choice, mturk$Study)
+```
+
+```{r}
+chisq.test(table(mturk$Choice))
+# table(mturk$Choice)
+60/(60+20) # number of individuals choosing organization
+```
+
+
+### Correlation between estimated task time, effort, & enjoyability
+
+```{r}
+
+corrgram(mturk[c("PreTimeDiff", "PreEffDiff", "FunDiff")],
+         lower.panel=panel.pts, upper.panel=panel.conf,
+         diag.panel=panel.density)
+
+
+```
+
+
+
+
+### Time, Effort, & Enjoyability Estimates Predicting Choice
+
+
+Models with single predictor 
+```{r}
+mturk.time<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=mturk)
+# quasi-separation with mturk.time model
+mturk.time1<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+mturk.eff<-glm(Choice.Num ~ PreEffDiff, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+mturk.fun<-glm(Choice.Num ~ FunDiff, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+
+tab_model(mturk.time1, mturk.eff, mturk.fun, transform=NULL, show.stat = T, digits.p=2)
+```
+
+
+The same models as above except looking at whether they interact with sample
+
+```{r}
+mturk.time2<-glm(Choice.Num ~ PreTimeDiff*Study, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+mturk.eff2<-glm(Choice.Num ~ PreEffDiff*Study, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+mturk.fun2<-glm(Choice.Num ~ FunDiff*Study, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+
+tab_model(mturk.time2, mturk.eff2, mturk.fun2, transform=NULL, show.stat = T, digits.p=2)
+```
+
+Model with all factors combined
+```{r, warning=F, message=F}
+mturk.all<-glm(Choice.Num ~ PreTimeDiff+PreEffDiff+FunDiff, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+mturk.all2<-glm(Choice.Num ~ PreTimeDiff*Study+PreEffDiff*Study+FunDiff*Study, family="binomial", data=mturk[mturk$PreTimeDiff<70,])
+
+tab_model(mturk.all, transform=NULL, show.stat = T, digits.p=2)
+```
+
+
+```{r}
+ggplot(mturk, aes(x=PreTimeDiff, y=Choice.Num)) + 
+  geom_point(position = "jitter") + 
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)
+
+# par(mar = c(4, 4, 1, 1)) # Reduce some of the margins so that the plot fits better
+# plot(dat$mpg, dat$vs)
+# curve(predict(logr_vm, data.frame(mpg=x), type="response"), add=TRUE) 
+```
+
+```{r}
+plot_model(mturk.pre3, type="int")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# SONA
+```{r}
+sona.raw<-subset(df, Study %in% c("Sona E1", "Sona E2"))
+sona<-subset(sona.raw, !is.na(Age))
+sona$Study<-as.factor(as.character(sona$Study))
+```
+
+
+### Demographics
+
+Sex:
+
+```{r}
+table(sona$Sex)
+table(sona$Sex, sona$Study)
+
+```
+
+Mean age and SD respectively: 
+```{r}
+mean(sona$Age)
+sd(sona$Age)
+
+```
+
+Sample 1:
+```{r}
+mean(sona[sona$Study=="Sona E1",]$Age)
+sd(sona[sona$Study=="Sona E1",]$Age)
+
+```
+
+Sample 2:
+```{r}
+mean(sona[sona$Study=="Sona E2",]$Age)
+sd(sona[sona$Study=="Sona E2",]$Age)
+
+```
+
+
+
+
+### Mturk Sample Time Estimate
+
+
+Graph:
+
+```{r}
+sona<-sona[complete.cases(sona$PreTimeDiff),] # removing data from individuals without numerical data for time estimates
+
+time.sona<-melt(sona, id=c(1:9, 11:12, 14:ncol(sona)),
+                 variable.name = "Strategy", value.name = "Time") # col 10 & 13 are the time estimates
+time.sona$Strategy<-factor(recode(time.sona$Strategy, "'Time_OrgTotal'='Organization';
+                                   'Time_SearchTotal'='Search Only'"))
+
+ggplot(time.sona, aes(x = Strategy, y = Time))+
+  facet_grid(.~Study)+
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+```
+
+Wilcoxon Ranked Sign Test: 
+```{r}
+wilcox.test(sona$Time_OrgTotal, sona$Time_SearchTotal, paired=T) 
+```
+
+
+Sample 1: 
+```{r}
+wilcox.test(sona[sona$Study=="Sona E1",]$Time_OrgTotal, sona[sona$Study=="Sona E1",]$Time_SearchTotal, paired=T, exact=F) 
+```
+
+Sample 2: 
+```{r}
+wilcox.test(sona[sona$Study=="Sona E2",]$Time_OrgTotal, sona[sona$Study=="Sona E2",]$Time_SearchTotal, paired=T, exact=F) 
+```
+
+
+
+
+
+
+
+Estimated median time for the organization strategy:
+```{r}
+median(sona$Time_OrgTotal)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(sona[sona$Study=="Sona E1",]$Time_OrgTotal)
+median(sona[sona$Study=="Sona E2",]$Time_OrgTotal)
+```
+
+Estimated median time for the search-only strategy:
+```{r}
+median(sona$Time_SearchTotal)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(sona[sona$Study=="Sona E1",]$Time_SearchTotal)
+median(sona[sona$Study=="Sona E2",]$Time_SearchTotal)
+```
+
+
+
+
+```{r}
+sona$time.compare<-ifelse(sona$Time_OrgTotal>sona$Time_SearchTotal, "Search Faster", 
+                     ifelse(sona$Time_OrgTotal<sona$Time_SearchTotal, "Organize Faster", "Same"))
+table(sona$time.compare)
+
+```
+
+
+
+
+
+
+
+### Strategy Preference
+
+
+(With sample as factor)
+```{r}
+chisq.test(table(sona$Choice, sona$Study))
+table(sona$Choice, sona$Study)
+```
+
+```{r}
+chisq.test(table(sona$Choice))
+# table(sona$Choice)
+60/(60+20) # number of individuals choosing organization
+```
+
+
+### Correlation between estimated task time, effort, & enjoyability
+
+```{r}
+
+corrgram(sona[c("PreTimeDiff", "PreEffDiff", "FunDiff")],
+         lower.panel=panel.pts, upper.panel=panel.conf,
+         diag.panel=panel.density)
+
+
+```
+
+
+
+
+### Time, Effort, & Enjoyability Estimates Predicting Choice
+
+
+```{r}
+# sona.pre<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=sona)
+sona.time<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=sona[sona$PreTimeDiff<70,])
+sona.eff<-glm(Choice.Num ~ PreEffDiff, family="binomial", data=sona[sona$PreTimeDiff<70,])
+sona.fun<-glm(Choice.Num ~ FunDiff, family="binomial", data=sona[sona$PreTimeDiff<70,])
+
+tab_model(sona.time, sona.eff, sona.fun, transform=NULL, show.stat = T, digits.p=2)
+```
+
+
+Same models 2-4 as above except looking at whether they interact with sample
+
+```{r}
+sona.time2<-glm(Choice.Num ~ PreTimeDiff*Study, family="binomial", data=sona[sona$PreTimeDiff<70,])
+sona.eff2<-glm(Choice.Num ~ PreEffDiff*Study, family="binomial", data=sona[sona$PreTimeDiff<70,])
+sona.fun2<-glm(Choice.Num ~ FunDiff*Study, family="binomial", data=sona[sona$PreTimeDiff<70,])
+
+tab_model(sona.time2, sona.eff2, sona.fun2, transform=NULL, show.stat = T, digits.p=2)
+```
+
+```{r}
+sona.time.e2a<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=sona[sona$Study=="Sona E1" & sona$PreTimeDiff<70,])
+sona.time.e2b<-glm(Choice.Num ~ PreTimeDiff, family="binomial", data=sona[sona$Study=="Sona E2" & sona$PreTimeDiff<70,])
+
+tab_model(sona.time.e2a, sona.time.e2b, transform=NULL, show.stat = T, digits.p=2)
+
+```
+
+Model with all factors combined
+```{r}
+sona.all<-glm(Choice.Num ~ PreTimeDiff+PreEffDiff+FunDiff, family="binomial", data=sona)
+sona.all2<-glm(Choice.Num ~ PreTimeDiff*Study+PreEffDiff*Study+FunDiff*Study, family="binomial", data=sona[sona$PreTimeDiff<70,])
+# quasi-separation issues; removed outliers with a relative time difference score > 70
+
+tab_model(sona.all, sona.all2, transform=NULL, show.stat = T, digits.p=2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+ggplot(sona, aes(x=PreTimeDiff, y=Choice.Num)) + 
+  geom_point(position = "jitter") + 
+  stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)
+
+# par(mar = c(4, 4, 1, 1)) # Reduce some of the margins so that the plot fits better
+# plot(dat$mpg, dat$vs)
+# curve(predict(logr_vm, data.frame(mpg=x), type="response"), add=TRUE) 
+```
+
+```{r}
+plot_model(sona.pre3, type="int")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r load data sets: inter-rater reliability}
+irr<-read.csv("C:/Users/MonaZhu/Dropbox/CANB Lab/Lego & Search/Combined Data/Lego_Combined in-Lab&Turk&Sona_InterRaterReliability.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
