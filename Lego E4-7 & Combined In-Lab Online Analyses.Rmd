@@ -24,21 +24,10 @@ pre code, pre, code {
 # libraries
 library(car)
 library(ggplot2)
-library(plyr)
 library(reshape2)
-library(wesanderson)
-library(corrplot)
-library(BayesFactor)
 library(sjPlot)
-library(ez)
-library(lme4)
-library(RColorBrewer)
-library(openxlsx)
 library(corrgram)
-library(ggalluvial)
-library(BayesFactor)
-library(lme4)
-library(sjmisc)
+library(apaTables)
 # library(irr)
 ```
 
@@ -132,7 +121,9 @@ sd(mturk[mturk$Study=="Mturk E3",]$Age)
 
 
 
-### Mturk Sample Time Estimate
+### Raw Estimates
+
+#### Time
 
 
 Graph:
@@ -205,11 +196,163 @@ table(mturk$time.compare)
 ```
 
 
+#### Effort
+
+
+Graph:
+
+```{r}
+eff.mturk<-melt(mturk, id=c(1:13, 16:ncol(mturk)),
+                 variable.name = "Strategy", value.name = "Effort") # col 10 & 13 are the time estimates
+eff.mturk$Strategy<-factor(recode(eff.mturk$Strategy, "'Org.Eff'='Organization';
+                                   'Search.Eff'='Search Only'"))
+
+ggplot(eff.mturk, aes(x = Strategy, y = Effort))+
+  facet_grid(.~Study)+
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+```
+
+Wilcoxon Ranked Sign Test: 
+```{r}
+wilcox.test(mturk$Org.Eff, mturk$Search.Eff, paired=T) 
+```
+
+
+Sample 1: 
+```{r}
+wilcox.test(mturk[mturk$Study=="Mturk E2",]$Org.Eff, mturk[mturk$Study=="Mturk E2",]$Search.Eff, paired=T, exact=F) 
+```
+
+Sample 2: 
+```{r}
+wilcox.test(mturk[mturk$Study=="Mturk E3",]$Org.Eff, mturk[mturk$Study=="Mturk E3",]$Search.Eff, paired=T, exact=F) 
+```
 
 
 
 
-###Strategy preference
+
+
+
+Estimated median time for the organization strategy:
+```{r}
+median(mturk$Org.Eff)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(mturk[mturk$Study=="Mturk E2",]$Org.Eff)
+median(mturk[mturk$Study=="Mturk E3",]$Org.Eff)
+```
+
+Estimated median time for the search-only strategy:
+```{r}
+median(mturk$Search.Eff)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(mturk[mturk$Study=="Mturk E2",]$Search.Eff)
+median(mturk[mturk$Study=="Mturk E3",]$Search.Eff)
+```
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
+
+```{r}
+mturk$time.compare<-ifelse(mturk$Org.Eff>mturk$Search.Eff, "Search Faster", 
+                     ifelse(mturk$Org.Eff<mturk$Search.Eff, "Organize Faster", "Same"))
+table(mturk$time.compare)
+
+```
+
+
+
+
+
+
+#### Enjoyability
+
+
+Graph:
+
+```{r}
+fun.mturk<-melt(mturk, id=c(1:15, 18:ncol(mturk)),
+                 variable.name = "Strategy", value.name = "Enjoyability") # col 10 & 13 are the time estimates
+fun.mturk$Strategy<-factor(recode(fun.mturk$Strategy, "'Org.Fun'='Organization';
+                                   'Search.Fun'='Search Only'"))
+
+ggplot(fun.mturk, aes(x = Strategy, y = Enjoyability))+
+  facet_grid(.~Study)+
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+```
+
+Wilcoxon Ranked Sign Test: 
+```{r}
+wilcox.test(mturk$Org.Fun, mturk$Search.Fun, paired=T) 
+```
+
+
+Sample 1: 
+```{r}
+wilcox.test(mturk[mturk$Study=="Mturk E2",]$Org.Fun, mturk[mturk$Study=="Mturk E2",]$Search.Fun, paired=T, exact=F) 
+```
+
+Sample 2: 
+```{r}
+wilcox.test(mturk[mturk$Study=="Mturk E3",]$Org.Fun, mturk[mturk$Study=="Mturk E3",]$Search.Fun, paired=T, exact=F) 
+```
+
+
+
+
+
+
+
+Estimated median time for the organization strategy:
+```{r}
+median(mturk$Org.Fun)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(mturk[mturk$Study=="Mturk E2",]$Org.Fun)
+median(mturk[mturk$Study=="Mturk E3",]$Org.Fun)
+```
+
+Estimated median time for the search-only strategy:
+```{r}
+median(mturk$Search.Fun)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(mturk[mturk$Study=="Mturk E2",]$Search.Fun)
+median(mturk[mturk$Study=="Mturk E3",]$Search.Fun)
+```
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
+
+```{r}
+mturk$time.compare<-ifelse(mturk$Org.Fun>mturk$Search.Fun, "Organization More Enjoyable", 
+                     ifelse(mturk$Org.Fun<mturk$Search.Fun, "Search More Enjoyable", "Same"))
+table(mturk$time.compare)
+
+```
+
+
+
+
+
+
+### Strategy preference
+
+#### Overall Preference
 
 (With sample as factor)
 ```{r}
@@ -224,21 +367,8 @@ chisq.test(table(mturk$Choice))
 ```
 
 
-### Correlation between estimated task time, effort, & enjoyability
 
-```{r}
-
-corrgram(mturk[c("PreTimeDiff", "PreEffDiff", "FunDiff")],
-         lower.panel=panel.pts, upper.panel=panel.conf,
-         diag.panel=panel.density)
-
-
-```
-
-
-
-
-### Time, Effort, & Enjoyability Estimates Predicting Choice
+#### Time, Effort, & Enjoyability Estimates Predicting Choice
 
 
 Models with single predictor 
@@ -262,6 +392,26 @@ mturk.fun2<-glm(Choice.Num ~ FunDiff*Study, family="binomial", data=mturk[mturk$
 
 tab_model(mturk.time2, mturk.eff2, mturk.fun2, transform=NULL, show.stat = T, digits.p=2)
 ```
+
+
+
+#### Correlation between estimated task time, effort, & enjoyability
+
+```{r}
+corrgram(mturk[c("PreTimeDiff", "PreEffDiff", "FunDiff")],
+         lower.panel=panel.pts, upper.panel=panel.conf,
+         diag.panel=panel.density)
+
+```
+
+```{r}
+iv<-mturk[c("PreTimeDiff", "PreEffDiff", "FunDiff")]
+names(iv)<-c("Relative Task Time", "Relative Task Effort", "Relative Task Enjoyability")
+
+apa.cor.table(iv, table.number = 1, filename = "LegoOnline_Table1.doc")
+
+```
+
 
 Model with all factors combined
 ```{r, warning=F, message=F}
@@ -359,8 +509,9 @@ sd(sona[sona$Study=="Sona E2",]$Age)
 
 
 
-### Mturk Sample Time Estimate
+### Raw Estimates
 
+#### Task Time
 
 Graph:
 
@@ -435,6 +586,210 @@ table(sona$time.compare)
 
 
 
+#### Effort
+
+
+Graph:
+
+```{r}
+eff.sona<-melt(sona, id=c(1:13, 16:ncol(sona)),
+                 variable.name = "Strategy", value.name = "Effort") # col 10 & 13 are the time estimates
+eff.sona$Strategy<-factor(recode(eff.sona$Strategy, "'Org.Eff'='Organization';
+                                   'Search.Eff'='Search Only'"))
+
+ggplot(eff.sona, aes(x = Strategy, y = Effort))+
+  facet_grid(.~Study)+
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+```
+
+Wilcoxon Ranked Sign Test: 
+```{r}
+wilcox.test(sona$Org.Eff, sona$Search.Eff, paired=T) 
+```
+
+
+Sample 1: 
+```{r}
+wilcox.test(sona[sona$Study=="Sona E1",]$Org.Eff, sona[sona$Study=="Sona E1",]$Search.Eff, paired=T, exact=F) 
+```
+
+Sample 2: 
+```{r}
+wilcox.test(sona[sona$Study=="Sona E2",]$Org.Eff, sona[sona$Study=="Sona E2",]$Search.Eff, paired=T, exact=F) 
+```
+
+
+
+
+
+
+
+Estimated median time for the organization strategy:
+```{r}
+median(sona$Org.Eff)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(sona[sona$Study=="Sona E1",]$Org.Eff)
+median(sona[sona$Study=="Sona E2",]$Org.Eff)
+```
+
+Estimated median time for the search-only strategy:
+```{r}
+median(sona$Search.Eff)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(sona[sona$Study=="Sona E1",]$Search.Eff)
+median(sona[sona$Study=="Sona E2",]$Search.Eff)
+```
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
+
+```{r}
+sona$time.compare<-ifelse(sona$Org.Eff>sona$Search.Eff, "Search Faster", 
+                     ifelse(sona$Org.Eff<sona$Search.Eff, "Organize Faster", "Same"))
+table(sona$time.compare)
+
+```
+
+
+
+
+
+
+#### Enjoyability
+
+
+Graph:
+
+```{r}
+fun.sona<-melt(sona, id=c(1:15, 18:ncol(sona)),
+                 variable.name = "Strategy", value.name = "Enjoyability") # col 10 & 13 are the time estimates
+fun.sona$Strategy<-factor(recode(fun.sona$Strategy, "'Org.Fun'='Organization';
+                                   'Search.Fun'='Search Only'"))
+
+ggplot(fun.sona, aes(x = Strategy, y = Enjoyability))+
+  facet_grid(.~Study)+
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+```
+
+Wilcoxon Ranked Sign Test: 
+```{r}
+wilcox.test(sona$Org.Fun, sona$Search.Fun, paired=T) 
+```
+
+
+Sample 1: 
+```{r}
+wilcox.test(sona[sona$Study=="Sona E1",]$Org.Fun, sona[sona$Study=="Sona E1",]$Search.Fun, paired=T, exact=F) 
+```
+
+Sample 2: 
+```{r}
+wilcox.test(sona[sona$Study=="Sona E2",]$Org.Fun, sona[sona$Study=="Sona E2",]$Search.Fun, paired=T, exact=F) 
+```
+
+
+
+
+
+
+
+Estimated median time for the organization strategy:
+```{r}
+median(sona$Org.Fun)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(sona[sona$Study=="Sona E1",]$Org.Fun)
+median(sona[sona$Study=="Sona E2",]$Org.Fun)
+```
+
+Estimated median time for the search-only strategy:
+```{r}
+median(sona$Search.Fun)
+```
+
+Medians for Sample 1 and 2 respectively:
+```{r}
+median(sona[sona$Study=="Sona E1",]$Search.Fun)
+median(sona[sona$Study=="Sona E2",]$Search.Fun)
+```
+Estimated mean time and sd that participants expect to spend in the organization phase, if they were to use the organization strategy:
+
+Table breaking down the number of individuals who thought the search-only strategy was slower, faster, or the same as the organization strategy: 
+
+```{r}
+sona$time.compare<-ifelse(sona$Org.Fun>sona$Search.Fun, "Organization More Enjoyable", 
+                     ifelse(sona$Org.Fun<sona$Search.Fun, "Search More Enjoyable", "Same"))
+table(sona$time.compare)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -450,21 +805,10 @@ table(sona$Choice, sona$Study)
 
 ```{r}
 chisq.test(table(sona$Choice))
-# table(sona$Choice)
-60/(60+20) # number of individuals choosing organization
+table(sona$Choice)
+40/78 # number of individuals choosing organization
 ```
 
-
-### Correlation between estimated task time, effort, & enjoyability
-
-```{r}
-
-corrgram(sona[c("PreTimeDiff", "PreEffDiff", "FunDiff")],
-         lower.panel=panel.pts, upper.panel=panel.conf,
-         diag.panel=panel.density)
-
-
-```
 
 
 
@@ -500,21 +844,46 @@ tab_model(sona.time.e2a, sona.time.e2b, transform=NULL, show.stat = T, digits.p=
 
 ```
 
+
+
+
+
+### Correlation between estimated task time, effort, & enjoyability
+
+```{r}
+corrgram(sona[c("PreTimeDiff", "PreEffDiff", "FunDiff")],
+         lower.panel=panel.pts, upper.panel=panel.conf,
+         diag.panel=panel.density)
+```
+
+```{r}
+iv2<-sona[c("PreTimeDiff", "PreEffDiff", "FunDiff")]
+names(iv2)<-c("Relative Task Time", "Relative Task Effort", "Relative Task Enjoyability")
+
+apa.cor.table(iv2, table.number = 2, filename = "LegoOnline_Table2.doc")
+
+```
+
+
 Model with all factors combined
 ```{r}
-sona.all<-glm(Choice.Num ~ PreTimeDiff+PreEffDiff+FunDiff, family="binomial", data=sona)
+sona.all<-glm(Choice.Num ~ PreTimeDiff+PreEffDiff+FunDiff, family="binomial", data=sona[sona$PreTimeDiff<70,])
 sona.all2<-glm(Choice.Num ~ PreTimeDiff*Study+PreEffDiff*Study+FunDiff*Study, family="binomial", data=sona[sona$PreTimeDiff<70,])
 # quasi-separation issues; removed outliers with a relative time difference score > 70
 
-tab_model(sona.all, sona.all2, transform=NULL, show.stat = T, digits.p=2)
+tab_model(sona.all, transform=NULL, show.stat = T, digits.p=2)
 ```
 
 
 
+Standardized Coef
+```{r}
+sona.all3<-glm(Choice.Num ~ scale(PreTimeDiff)+scale(PreEffDiff)+scale(FunDiff), family="binomial", data=sona[sona$PreTimeDiff<70,])
+mturk.all3<-glm(Choice.Num ~ scale(PreTimeDiff)+scale(PreEffDiff)+scale(FunDiff), family="binomial", data=mturk[mturk$PreTimeDiff<70,])
 
+tab_model(mturk.all3, sona.all3, transform=NULL, show.stat = T, digits.p=2)
 
-
-
+```
 
 
 
