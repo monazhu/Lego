@@ -30,6 +30,7 @@ library(reshape2)
 library(stringr)
 library(lme4)
 library(ez)
+library(emmeans)
 library(tidyr)
 library(plyr)
 ```
@@ -483,8 +484,6 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg))+
   coord_cartesian(ylim = c(0, 1))
 ```
 
-
-
 ```{r}
 # e2.single<-glm(Choice.Num~TimeDiff, family=binomial, data = first)
 
@@ -500,9 +499,7 @@ tab_model(e2.time, transform = NULL, show.stat = T)
 
 #### Choice Based on Reason Provided (Individual Differences)
 
-##### Proportion of people choosing each strategy 
-
-###### Self-Reported Categories
+##### Proportion of people choosing each strategy (Self-Reported Categories)
 
 
 ```{r}
@@ -542,43 +539,6 @@ ggplot(freq, aes(x=Reasoning, y=dep.avg))+
 
 ```
 
-
-<!-- ###### Experimenter-Coded Categories -->
-
-<!-- ```{r} -->
-<!-- freq<-data.frame(count(e2$Reasoning),  -->
-<!--                  count(e2$Reasoning)[2]/nrow(e2),  -->
-<!--                  sqrt((count(e2$Reasoning)[2]/nrow(e2))*(1-count(e2$Reasoning)[2]/nrow(e2)))) -->
-<!-- names(freq)<-c("Reasoning", "dep.count", "dep.avg", "dep.sd") -->
-
-<!-- ggplot(freq, aes(x=Reasoning, y=dep.avg))+  -->
-<!--   geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+ -->
-<!--   # geom_line()+ -->
-<!--   # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+ -->
-<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
-<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"), -->
-<!--                 width=0.05, position = position_dodge(0.5))+ -->
-<!--   theme( -->
-<!--     panel.background= element_rect(fill=NA), # transparent panel -->
-<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
-<!--     panel.grid=element_blank(), # remove panel grid -->
-<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
-<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
-<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
-<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
-<!--     axis.text = element_text(color="#432620"), -->
-<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
-<!--     ,legend.position="none" -->
-<!--   )+ -->
-<!--   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon")) -->
-<!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
-<!--   scale_colour_manual(values=c("maroon", "maroon"))+ -->
-<!--   scale_x_discrete("Reason")+ -->
-<!--   scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+ -->
-<!--   coord_cartesian(ylim = c(0, 1))+ -->
-<!--   geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.55)) -->
-
-<!-- ``` -->
 
 
 
@@ -628,11 +588,12 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Choice.Reason))+
 
 ```
 
+###### GLMER
 
 ```{r}
 # singularity 
 # e2.self1<-glmer(Choice.Num~TimeDiff*Choice.Reason+(TimeDiff|workerId), family=binomial, data = res.choice)
-e2.self1.5<-glmer(Choice.Num~TimeDiff+(TimeDiff|workerId), family=binomial, data = res.choice)
+# e2.self1.5<-glmer(Choice.Num~TimeDiff+(TimeDiff|workerId), family=binomial, data = res.choice)
 e2.self2<-glmer(Choice.Num~TimeDiff*Choice.Reason+(1|workerId), family=binomial, data = res.choice)
 
 tab_model(e2.self2, transform = NULL, show.stat = T)
@@ -656,118 +617,105 @@ tab_model(e2.org, e2.search, e2.max, transform = NULL, show.stat = T,
 ```
 
 
-<!-- ##### Categories based on reason provided in open-ended response -->
+###### GLM
+```{r}
+e2.self3<-glm(Choice.Num~TimeDiff*Choice.Reason, family=binomial, data = res.choice)
 
-<!-- ```{r} -->
-<!-- res<-subset(e2.long, Reasoning!="Other") -->
+anova(e2.self2, e2.self3)
 
-<!-- res$Reasoning<-as.factor(as.character(res$Reasoning)) -->
-<!-- res$Reasoning<-factor(res$Reasoning, levels(res$Reasoning)[c(3,2,1)]) -->
+tab_model(e2.self2, e2.self3, transform = NULL, show.stat = T)
 
-<!-- ``` -->
+```
 
-<!-- ```{r} -->
-<!-- graph2<-ddply(res, c("TimeDiff", "Reasoning"), function(df)    -->
-<!--   return(c(dep.avg=mean(df$Choice.Num), dep.sd=sd(df$Choice.Num), dep.count=length(df$Choice.Num),  -->
-<!--            dep.sem=(sd(df$Choice.Num))/(sqrt(length(df$Choice.Num)))))) -->
+```{r}
+e2.min2<-glm(Choice.Num~TimeDiff, family=binomial, 
+               data = res.choice[res.choice$Choice.Reason=="Time Minimization",])
 
-<!-- ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Reasoning))+  -->
-<!--   geom_point(size=4, shape=17, position = position_dodge(0.15))+ -->
-<!--   # geom_line(position = position_dodge(0.15))+ -->
-<!--   stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+ -->
-<!--   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count),  -->
-<!--                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count)), -->
-<!--                 width=0.05, position = position_dodge(0.15))+ -->
-<!--   theme( -->
-<!--     panel.background= element_rect(fill=NA), # transparent panel -->
-<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
-<!--     panel.grid=element_blank(), # remove panel grid -->
-<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
-<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
-<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
-<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
-<!--     axis.text = element_text(color="#432620"), -->
-<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
-<!--     # ,legend.position="none" -->
-<!--   )+ -->
-<!--   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon")) -->
-<!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
-<!--   scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(1,3,4)])+ -->
-<!--   scale_x_continuous("Time Difference\n(Search - Organization)")+ -->
-<!--   scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+ -->
-<!--   coord_cartesian(ylim = c(0, 1)) -->
+e2.org2<-glm(Choice.Num~TimeDiff, family=binomial, 
+               data = res.choice[res.choice$Choice.Reason=="Organization Preference",])
 
-<!-- ``` -->
+e2.search2<-glm(Choice.Num~TimeDiff, family=binomial, 
+               data = res.choice[res.choice$Choice.Reason=="Direct Search Preference",])
+
+e2.max2<-glm(Choice.Num~TimeDiff, family=binomial, 
+               data = res.choice[res.choice$Choice.Reason=="Maximize Time",])
+
+tab_model(e2.min2, e2.org2, e2.search2, e2.max2, transform = NULL, show.stat = T,
+          dv.labels = c("Time-Minimizers", "Organizers", "Searchers", "Time-Maximizers"))
 
 
-<!-- ```{r} -->
-<!-- e2.self<-glmer(Choice.Num~TimeDiff*Choice.Reason+(1|workerId), family=binomial, data = res.choice) -->
-<!-- e2.coded<-glmer(Choice.Num~TimeDiff*Reasoning+(1|workerId), family=binomial, data = res) -->
+```
 
 
-<!-- tab_model(e2.self, transform = NULL) -->
-<!-- tab_model(e2.coded, transform = NULL) -->
+###### ANOVA
+
+```{r}
+res.aov<-res.choice
+res.aov$TimeDiff<-as.factor(res.aov$TimeDiff)
+
+```
+
+```{r}
+e2.min.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Time Minimization",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+e2.org.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Organization Preference",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+e2.search.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Direct Search Preference",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+e2.max.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Maximize Time",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+```
+
+```{r}
+options(contrasts = c("contr.sum", "contr.poly"))
+e2.aov<-ezANOVA(data=res.aov, wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                between=.(Choice.Reason), detailed=T, type=3, return_aov = TRUE)
+
+emm <- emmeans(e2.aov$aov, ~ TimeDiff | Choice.Reason)
+
+# contrast(
+#   emm,
+#   list(min1 = c(-1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+#        min2 = c(0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+#        org1 = c(0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0),
+#        org2 = c(0, 0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0),
+#        search1 = c(0, 0, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0),
+#        search2 = c(0, 0, 0, 0, 0, 0, 0, -1, 1, 0, 0, 0),
+#        max1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1, 0),
+#        max2 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1))
+# )
+
+pairs(emm, adjust="bonferroni")
+
+```
+
+### GEE
+
+```{r}
+res.choice$workerId<-factor(res.choice$workerId)
+
+mod.gee<- geepack::geeglm(Choice.Num~TimeDiff*Choice.Reason, family=binomial, 
+                 data = res.choice,
+                 id=workerId, corstr = "independence")
+  
+mod2<-gee::gee(Choice.Num~TimeDiff*Choice.Reason, family=binomial, data = res.choice,
+                 id=workerId, corstr = "independence", na.action=na.omit)
+  
+tab_model(e2.self2, e2.self3, mod.gee, transform = NULL, show.stat = T,
+          dv.labels = c("Mixed Effects Logistic Reg", "Logistic Regression", "GEE"))
+
+tab_model(mod2, mod.gee)
 
 
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- mod1<-glmer(Choice.Num~TimeDiff*Choice.Reason+(1|workerId), family=binomial, data = res.choice, -->
-<!--            contrasts = list(Choice.Reason = "contr.sum")) -->
-
-<!-- mod2<-glmer(Choice.Num~TimeDiff*Choice.Reason+(1|workerId), family=binomial, data = res.choice, -->
-<!--            contrasts = list(Choice.Reason = contr.sum)) -->
-
-<!-- tab_model(mod1, mod2) -->
-
-<!-- ``` -->
-
-
-<!-- ##### Alluvial Graph (self-reported vs experimenter coded choice) -->
-
-<!-- ```{r} -->
-<!-- tab <- first %>% -->
-<!--   group_by(Choice.Reason, Reasoning) %>% -->
-<!--   count() -->
-
-<!-- # png(file = "AlluvialGraph.png", bg = "transparent", type = c("cairo"), width=1200, height=550, res=300) -->
-
-
-<!-- ggplot(tab, aes(axis1 = Choice.Reason, axis2 = Reasoning, y = freq)) + -->
-<!--   geom_alluvium(aes(fill = Choice.Reason)) + -->
-<!--   geom_stratum() + -->
-<!--   geom_text(stat = "stratum", label.strata = TRUE) + -->
-<!--   scale_x_discrete(limits = c("Self-Report", "Experimenter\nCoded"), -->
-<!--                    expand = c(.1, .1)) + -->
-<!--   labs(y = "Frequency")+ -->
-<!--   theme( -->
-<!--     panel.background= element_rect(fill=NA), # transparent panel -->
-<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
-<!--     panel.grid=element_blank(), # remove panel grid -->
-<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
-<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
-<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
-<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
-<!--     axis.text = element_text(color="#432620"), -->
-<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
-<!--     # ,legend.position="none" -->
-<!--   )+ -->
-<!--   scale_fill_manual("Self-Reported\nCategories", values=c(wes_palette("GrandBudapest2", 4), -->
-<!--                                                           wes_palette("IsleofDogs1", 1))) -->
-
-<!-- # dev.off() -->
-<!-- ``` -->
-
-
-
-
-
-
-
-
-
-
+```
 
 
 
@@ -822,13 +770,6 @@ e3$Choice.Reason<-factor(car::recode(e3$Reason1,
                          'I prefer whichever strategy that would minimize task time'='Time Minimization';
                          'I prefer whichever strategy that would maximize task time'='Maximize Time'"))
 e3$Choice.Reason<-factor(e3$Choice.Reason, levels(e3$Choice.Reason)[c(5,3,1,2,4)])
-
-# recoding categories based on open-ended responses
-# e3$Reasoning<-factor(ifelse(e3$TimeMinimization=="y", "Time Mininzation",
-#                       ifelse(e3$OrgPreference=="y", "Organization Preference",
-#                              ifelse(e3$SearchPreference=="y", "Direct Search Preference", "Other"))))
-# e3$Reasoning<-factor(e3$Reasoning, levels(e3$Reasoning)[c(4,2,1,3)])
-
 
 e3.long<-melt(e3, id=c(1:3, 7:ncol(e3)), variable.name = "TimeDiff", value.name = "Choice")
 e3.long$TimeDiff<-as.numeric(as.character(car::recode(e3.long$TimeDiff, "'Q1'=-25; 'Q2'=25; 'Q3'=0")))
@@ -940,8 +881,6 @@ freq<-data.frame(count(e3$Choice.Reason),
                  sqrt((count(e3$Choice.Reason)[2]/nrow(e3))*(1-count(e3$Choice.Reason)[2]/nrow(e3))))
 names(freq)<-c("Reasoning", "dep.count", "dep.avg", "dep.sd")
 
-# freq$Reasoning<-factor(freq$Reasoning, levels(freq$Reasoning)[c(5,3,1,2,4)])
-
 ggplot(freq, aes(x=Reasoning, y=dep.avg))+ 
   geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
   # geom_line()+
@@ -976,12 +915,10 @@ ggplot(freq, aes(x=Reasoning, y=dep.avg))+
 #### Categories based on self-reported reason for choosing strategies
 
 ```{r}
-res.choice<-subset(e3.long, Choice.Reason %in% c("Organization Preference", 
-                                                 "Direct Search Preference", 
-                                                 "Time Minimization"))
+res.choice<-subset(e3.long, Choice.Reason!="Other")
 
 res.choice$Choice.Reason<-as.factor(as.character(res.choice$Choice.Reason))
-res.choice$Choice.Reason<-factor(res.choice$Choice.Reason, levels(res.choice$Choice.Reason)[c(3,2,1)])
+res.choice$Choice.Reason<-factor(res.choice$Choice.Reason, levels(res.choice$Choice.Reason)[c(4,3,1,2)])
 
 ```
 
@@ -1022,7 +959,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Choice.Reason))+
 ```
 
 
-
+##### GLMER
 
 ```{r}
 
@@ -1063,44 +1000,93 @@ tab_model(e3.org2, e3.search2, transform = NULL, show.stat = T)
 
 ```
 
+######## Changing Optimizer
 
-<!-- #### Alluvial Graph (self-reported vs experimenter coded choice) -->
+```{r}
+modelfit.all <- lme4::allFit(e3.self)
+ss <- summary(modelfit.all)
+```
 
-<!-- ```{r} -->
-<!-- tab <- first %>% -->
-<!--   group_by(Choice.Reason, Reasoning) %>% -->
-<!--   count() -->
+##### GLM
 
-<!-- # png(file = "AlluvialGraph.png", bg = "transparent", type = c("cairo"), width=1200, height=550, res=300) -->
+```{r}
+
+e3.self2<-glm(Choice.Num~TimeDiff*Choice.Reason, family=binomial, data = res.choice)
+# e3.coded<-glmer(Choice.Num~TimeDiff*Reasoning+(1|workerId), family=binomial, data = res)
+# e3.self2<-glmer(Choice.Num~TimeDiff+Choice.Reason+(1|workerId), family=binomial, data = res.choice)
+
+tab_model(e3.self, e3.self2, transform = NULL, show.stat = T,
+          dv.labels = c("Mixed-Effect Logistic Reg.", "Logistic Regression"))
+# tab_model(e3.coded, transform = NULL)
+```
+
+###### ANOVA
+
+```{r}
+res.aov<-res.choice
+res.aov$TimeDiff<-as.factor(res.aov$TimeDiff)
+
+```
+
+```{r}
+e3.min.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Time Minimization",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+e3.org.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Organization Preference",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+e3.search.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Direct Search Preference",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+e3.max.aov<-ezANOVA(data=res.aov[res.aov$Choice.Reason=="Maximize Time",], 
+                    wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                    detailed=T, type=3, return_aov = TRUE)
+
+```
+
+```{r}
+options(contrasts = c("contr.sum", "contr.poly"))
+e3.aov<-ezANOVA(data=res.aov, wid=.(workerId), within=.(TimeDiff), dv=.(Choice.Num),
+                between=.(Choice.Reason), detailed=T, type=3, return_aov = TRUE)
+
+emm <- emmeans(e3.aov$aov, ~ TimeDiff | Choice.Reason)
+
+# contrast(
+#   emm,
+#   list(min1 = c(-1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+#        min2 = c(0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+#        org1 = c(0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0, 0),
+#        org2 = c(0, 0, 0, 0, -1, 1, 0, 0, 0, 0, 0, 0),
+#        search1 = c(0, 0, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0),
+#        search2 = c(0, 0, 0, 0, 0, 0, 0, -1, 1, 0, 0, 0),
+#        max1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1, 0),
+#        max2 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1))
+# )
+
+pairs(emm, adjust="bonferroni")
+
+```
 
 
-<!-- ggplot(tab, aes(axis1 = Choice.Reason, axis2 = Reasoning, y = freq)) + -->
-<!--   geom_alluvium(aes(fill = Choice.Reason)) + -->
-<!--   geom_stratum() + -->
-<!--   geom_text(stat = "stratum", label.strata = TRUE) + -->
-<!--   scale_x_discrete(limits = c("Self-Report", "Experimenter\nCoded"), -->
-<!--                    expand = c(.1, .1)) + -->
-<!--   labs(y = "Frequency")+ -->
-<!--   theme( -->
-<!--     panel.background= element_rect(fill=NA), # transparent panel -->
-<!--     plot.background = element_rect(fill=NA, colour=NA), #transparent background -->
-<!--     panel.grid=element_blank(), # remove panel grid -->
-<!--     axis.ticks.x=element_blank(), # remove tick marks on x-axis -->
-<!--     axis.ticks=element_line(colour="gray70"), # change colour of tick marks -->
-<!--     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour -->
-<!--     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background -->
-<!--     axis.text = element_text(color="#432620"), -->
-<!--     legend.key = element_rect(fill = "transparent", colour = "transparent") -->
-<!--     # ,legend.position="none" -->
-<!--   )+ -->
-<!--   scale_fill_manual("Self-Reported\nCategories", values=c(wes_palette("GrandBudapest2", 4), -->
-<!--                                                           wes_palette("IsleofDogs1", 1))) -->
+### GEE
 
-<!-- # dev.off() -->
-<!-- ``` -->
+```{r}
+mod.gee<- geeglm(Choice.Num~TimeDiff*Choice.Reason, family=binomial, data = res.choice,
+                 id=workerId, corstr = "exchangeable")
+  
+  
+tab_model(e3.self2, mod.gee, transform = NULL, show.stat = T,
+          dv.labels = c("Logistic Regression", "GEE"))
+
+```
+
+
+
 
 ### Organization in Other Contexts
-
 
 #### Rating Based on Choice when there is no time cost/benefit
 
@@ -1145,22 +1131,31 @@ ggplot(graph2, aes(x=Choice, y=dep.avg, colour=Space))+
 
 ```{r}
 other$workerId<-factor(other$workerId)
+
+options(contrasts = c("contr.sum", "contr.poly"))
+
 aov<-ezANOVA(data=other, wid=.(workerId), dv=.(Rating), within=.(Space), between=.(Choice), detailed=T, 
-             type = 3)
+             type = 3, return_aov = T)
+
+
+emm2 <- emmeans(aov$aov, ~ Choice*Space)
+
+pairs(emm2)
+
 
 ```
 
 
 
 
-#### Choice
+
+
+#### Choice based on individual differences
 
 ```{r}
-sub<-subset(other, Choice.Reason %in% c("Organization Preference", 
-                                                 "Direct Search Preference", 
-                                                 "Time Minimization"))
+sub<-subset(other, Choice.Reason!="Other")
 sub$Choice.Reason<-factor(as.character(sub$Choice.Reason))
-sub$Choice.Reason<-factor(sub$Choice.Reason, levels(sub$Choice.Reason)[c(3,2,1)])
+sub$Choice.Reason<-factor(sub$Choice.Reason, levels(sub$Choice.Reason)[c(4,3,1,2)])
 
 graph2<-ddply(sub, c("Choice.Reason", "Space"), function(df)   
   return(c(dep.avg=mean(df$Rating), dep.sd=sd(df$Rating), dep.count=length(df$Rating), 
@@ -1196,8 +1191,15 @@ ggplot(graph2, aes(x=Choice.Reason, y=dep.avg, colour=Space))+
 
 ```{r}
 sub$workerId<-factor(sub$workerId)
-aov<-ezANOVA(data=sub, wid=.(workerId), dv=.(Rating), within=.(Space), between=.(Choice.Reason), detailed=T, 
-             type = 3)
+
+options(contrasts = c("contr.sum", "contr.poly"))
+aov2<-ezANOVA(data=sub, wid=.(workerId), dv=.(Rating), within=.(Space), between=.(Choice.Reason), detailed=T, 
+             type = 3, return_aov = T)
+
+emm3 <- emmeans(aov2$aov, ~ Choice.Reason)
+
+pairs(emm3)
+
 
 ```
 
