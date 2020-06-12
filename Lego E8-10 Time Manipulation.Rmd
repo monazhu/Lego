@@ -136,7 +136,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=BaseGroup))+
   geom_vline(xintercept = 0, linetype="dotted")+
   scale_colour_manual("Absolute\nBase Time\n(min)", values=wes_palette("Darjeeling1"))+
   scale_x_continuous("Time Difference (min)\n(Search - Organize)")+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1)) 
 
 dev.off()
@@ -246,9 +246,9 @@ ggplot(graph2, aes(x=Reasoning, y=dep.avg, colour=Reasoning))+
   )+
   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
   geom_hline(yintercept = .5, linetype="dotted")+
-  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(4,3,1,2)])+
-  scale_x_discrete("Reason for Choice")+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(4,3,1,2)])+
+  scale_x_discrete("Strategy Disposition")+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1)) 
 
 ```
@@ -291,9 +291,9 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Reasoning))+
   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
   geom_hline(yintercept = .5, linetype="dotted")+
   geom_vline(xintercept = 0, linetype="dotted")+
-  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(4,3,1,2)])+
+  scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(4,3,1,2)])+
   scale_x_continuous("Time Difference (min)\n(Search - Organization)")+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1)) 
 
 dev.off()
@@ -418,7 +418,7 @@ ggplot(graph2, aes(x=AbsTimeDiff, y=dep.avg, colour=BaseGroup))+
   geom_vline(xintercept = 0, linetype="dotted")+
   scale_colour_manual("Absolute\nBase Time\n(min)", values=wes_palette("Darjeeling1"))+
   scale_x_continuous("Absolute Task Time Difference (min)")+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1)) 
 
 
@@ -470,7 +470,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=BaseGroup))+
   geom_vline(xintercept = 0, linetype="dotted")+
   scale_colour_manual("Absolute\nBase Time\n(min)", values=wes_palette("Darjeeling1"))+
   scale_x_continuous("Time Difference (min)\n(Search - Organize)")+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1)) 
 
 ```
@@ -603,7 +603,7 @@ sd(raw$Age, na.rm=T)
 <!--   scale_colour_manual("Full Qn Set?", values=wes_palette("IsleofDogs1", 2))+ -->
 <!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
 <!--   scale_x_continuous("Time Difference (min)\n(Search - Organize)", breaks=seq(-25, 25, 25))+ -->
-<!--   scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+ -->
+<!--   scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+ -->
 <!--   coord_cartesian(ylim = c(0, 1)) -->
 <!-- ``` -->
 
@@ -704,7 +704,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Choice.Reason))+
   geom_hline(yintercept = .5, linetype="dotted")+
   scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
   scale_x_continuous("Time Difference (min)\n(Search - Organization)", breaks=seq(-25, 25, 25))+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1))
 
 ```
@@ -827,7 +827,7 @@ ggplot(tab, aes(axis1 = Choice.Reason, axis2 = Coded.Reason, y = n)) +
     legend.key = element_rect(fill = "transparent", colour = "transparent")
     # ,legend.position="none"
   )+
-  scale_fill_manual("Strategy\nPredisposition", values=c(wes_palettes$GrandBudapest2[c(1,3,4,2)],
+  scale_fill_manual("Strategy Disposition", values=c(wes_palettes$GrandBudapest2[c(1,3,4,2)],
                                                          wes_palettes$IsleofDogs1[c(2)]))
 
 dev.off()
@@ -904,9 +904,9 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Coded.Reason))+
   )+
   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
   geom_hline(yintercept = .5, linetype="dotted")+
-  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
+  scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
   scale_x_continuous("Time Difference (min)\n(Search - Organization)", breaks=seq(-25, 25, 25))+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1))
 
 ```
@@ -998,7 +998,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Evaluation))+
   geom_hline(yintercept = .5, linetype="dotted")+
   scale_colour_manual("Scenario", values=wes_palette("IsleofDogs1", 2))+
   scale_x_continuous("Time Difference (min)\n(Search - Organization)", breaks=seq(-25,25,25))+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1))
 ```
 
@@ -1148,7 +1148,7 @@ sd(raw$Age, na.rm=T)
 <!--   scale_colour_manual("Full Qn Set?", values=wes_palette("IsleofDogs1", 2))+ -->
 <!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
 <!--   scale_x_continuous("Time Difference (min)\n(Search - Organize)", breaks=seq(-25, 25, 25))+ -->
-<!--   scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+ -->
+<!--   scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+ -->
 <!--   coord_cartesian(ylim = c(0, 1)) -->
 <!-- ``` -->
 
@@ -1174,32 +1174,32 @@ freq.e3<-data.frame(count(e3$Choice.Reason),
                  sqrt((count(e3$Choice.Reason)[2]/nrow(e3))*(1-count(e3$Choice.Reason)[2]/nrow(e3))))
 names(freq.e3)<-c("Reasoning", "dep.count", "dep.avg", "dep.sd")
 
-ggplot(freq, aes(x=Reasoning, y=dep.avg))+ 
-  geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
-  # geom_line()+
-  # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
-  geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
-                    ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
-                width=0.05, position = position_dodge(0.5))+
-  theme(
-    panel.background= element_rect(fill=NA), # transparent panel
-    plot.background = element_rect(fill=NA, colour=NA), #transparent background
-    panel.grid=element_blank(), # remove panel grid
-    axis.ticks.x=element_blank(), # remove tick marks on x-axis
-    axis.ticks=element_line(colour="gray70"), # change colour of tick marks
-    panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
-    legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
-    axis.text = element_text(color="#432620"),
-    legend.key = element_rect(fill = "transparent", colour = "transparent")
-    ,legend.position="none"
-  )+
-  # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
-  geom_hline(yintercept = .5, linetype="dotted")+
-  scale_colour_manual(values=c("maroon", "maroon"))+
-  scale_x_discrete("Reason")+
-  scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
-  coord_cartesian(ylim = c(0, 1))+
-  geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.55))
+# ggplot(freq, aes(x=Reasoning, y=dep.avg))+ 
+#   geom_point(size=4, shape=17, position = position_dodge(0.5), colour="maroon")+
+#   # geom_line()+
+#   # stat_smooth(method="glm", method.args=list(family="binomial"), se=FALSE)+
+#   geom_errorbar(aes(ymax=dep.avg+dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), 
+#                     ymin=dep.avg-dep.sd*qt(0.975,df=dep.count-1)/sqrt(dep.count), colour="maroon"),
+#                 width=0.05, position = position_dodge(0.5))+
+#   theme(
+#     panel.background= element_rect(fill=NA), # transparent panel
+#     plot.background = element_rect(fill=NA, colour=NA), #transparent background
+#     panel.grid=element_blank(), # remove panel grid
+#     axis.ticks.x=element_blank(), # remove tick marks on x-axis
+#     axis.ticks=element_line(colour="gray70"), # change colour of tick marks
+#     panel.border = element_rect(fill="transparent", colour="gray70"), # change panel border colour
+#     legend.background = element_rect(fill = "transparent", colour = "transparent"), # change legend background
+#     axis.text = element_text(color="#432620"),
+#     legend.key = element_rect(fill = "transparent", colour = "transparent")
+#     ,legend.position="none"
+#   )+
+#   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
+#   geom_hline(yintercept = .5, linetype="dotted")+
+#   scale_colour_manual(values=c("maroon", "maroon"))+
+#   scale_x_discrete("Reason")+
+#   scale_y_continuous("Proportion Mentioning Using Time", breaks=seq(-1, 1, 0.1))+
+#   coord_cartesian(ylim = c(0, 1))+
+#   geom_text(aes(label = format(paste0(round(dep.avg*100, 2), "%"), digits = 4, colour="black"), y = 0.55))
 
 ```
 
@@ -1244,9 +1244,9 @@ ggplot(freq, aes(x=Reasoning, y=dep.avg))+
 <!--   )+ -->
 <!--   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon")) -->
 <!--   geom_hline(yintercept = .5, linetype="dotted")+ -->
-<!--   scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+ -->
+<!--   scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+ -->
 <!--   scale_x_continuous("Time Difference (min)\n(Search - Organization)", breaks=seq(-25, 25, 25))+ -->
-<!--   scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+ -->
+<!--   scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+ -->
 <!--   coord_cartesian(ylim = c(0, 1)) -->
 
 <!-- ``` -->
@@ -1424,9 +1424,9 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Coded.Reason))+
   )+
   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
   geom_hline(yintercept = .5, linetype="dotted")+
-  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
+  scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
   scale_x_continuous("Time Difference (min)\n(Search - Organization)", breaks=seq(-25, 25, 25))+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1))
 
 ```
@@ -1462,7 +1462,7 @@ ggplot(tab, aes(axis1 = Choice.Reason, axis2 = Coded.Reason, y = n)) +
     legend.key = element_rect(fill = "transparent", colour = "transparent")
     # ,legend.position="none"
   )+
-  scale_fill_manual("Strategy\nPredisposition", values=c(wes_palettes$GrandBudapest2[c(1,3,4,2)],
+  scale_fill_manual("Strategy\nDisposition", values=c(wes_palettes$GrandBudapest2[c(1,3,4,2)],
                                                          wes_palettes$IsleofDogs1[c(2)]))
 
 dev.off()
@@ -1526,7 +1526,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Evaluation))+
   geom_hline(yintercept = .5, linetype="dotted")+
   scale_colour_manual("Scenario", values=wes_palette("IsleofDogs1", 2))+
   scale_x_continuous("Time Difference (min)\n(Search - Organization)", breaks=seq(-25,25,25))+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1))
 ```
 
@@ -1540,7 +1540,7 @@ ggplot(graph2, aes(x=TimeDiff, y=dep.avg, colour=Evaluation))+
 
 ### Organization in Other Contexts
 
-#### Predisposition and Time Rating
+#### Disposition and Time Rating
 
 ```{r}
 space<-melt(e3[e3$Coded.Reason!="Other",], id=c(1:14, 17:ncol(e3)), 
@@ -1575,7 +1575,7 @@ ggplot(graph2, aes(x=Coded.Reason, y=dep.avg, colour=Space))+
   # scale_colour_manual(labels=c("#7294D4", "#7294D4","#7294D4","#7294D4"))
   # geom_hline(yintercept = 3.5, linetype="dotted")+
   scale_colour_manual("Type of Space", labels=c("Work Space", "Living Space"), values=wes_palettes$GrandBudapest1[c(1,2)])+
-  scale_x_discrete("Self-Reported Strategy Predisposition")+
+  scale_x_discrete("Rater-Coded Strategy Disposition")+
   scale_y_continuous("Rated Level of Organization", breaks=seq(-10, 10, 1))+
   coord_cartesian(ylim = c(3, 6)) 
 
@@ -1623,7 +1623,7 @@ plot_model(e3.timeorg2, type="int")
 ```
 
 
-#### Organization Rating, Time Diff & Predisposition predicting choice selection
+#### Organization Rating, Time Diff & Disposition predicting choice selection
 
 ```{r}
 options(contrasts = c("contr.treatment", "contr.poly"))
@@ -1643,7 +1643,7 @@ tab_model(e3.timeorgpred, transform = NULL, show.stat = T, dv.labels = "GEE")
 ```
 
 
-#### Organization Rating Predisposition predicting choice selection
+#### Organization Rating Disposition predicting choice selection
 
 ```{r}
 eq.choice<-subset(res.choice, TimeDiff==0)
@@ -1677,9 +1677,9 @@ ggplot(graph2, aes(x=Organization, y=dep.avg, colour=Coded.Reason))+
   )+
   # scale_colour_manual(labels=c("maroon", "maroon","maroon","maroon"))
   geom_hline(yintercept = .5, linetype="dotted")+
-  scale_colour_manual("Reason for Choice", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
+  scale_colour_manual("Strategy Disposition", values=wes_palettes$GrandBudapest2[c(1,3,4,2)])+
   scale_x_continuous("Self-Reported Organization", breaks=seq(1,6,1))+
-  scale_y_continuous("Proportion Choosing 'Organize First'", breaks=seq(-1, 1, 0.1))+
+  scale_y_continuous("Proportion Choosing an Organization Strategy", breaks=seq(-1, 1, 0.1))+
   coord_cartesian(ylim = c(0, 1))
 ```
 
